@@ -1,0 +1,1861 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cello Games — 8-bit Music Arcade</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    /* Paleta Top Gear (SNES) — amarelo placa, vermelho Ferrari, azul céu, verde grama */
+    --bg-0: #f4ede0;        /* creme/off-white (fundo principal) */
+    --bg-1: #ffffff;        /* branco (cards) */
+    --bg-2: #ebe2cf;        /* creme escuro */
+    --bg-3: #d6cab1;        /* creme ainda mais escuro */
+    --gold: #ffcc00;        /* amarelo placa Top Gear */
+    --gold-2: #ffa600;      /* amarelo escuro */
+    --velvet: #e63946;      /* vermelho Ferrari */
+    --velvet-2: #b8222e;    /* vermelho escuro */
+    --blue: #1d9bf0;        /* azul céu */
+    --blue-2: #0277bd;      /* azul escuro */
+    --cream: #1a1a2e;       /* texto preto (semanticamente "ink") */
+    --good: #06b870;        /* verde grama */
+    --warn: #ffa600;        /* laranja */
+    --bad: #e63946;         /* vermelho (alias de velvet) */
+    --muted: #6b6f80;       /* cinza médio */
+    --border-dark: #1a1a2e; /* linha/sombra preta */
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg-0);
+    background-image:
+      repeating-linear-gradient(0deg, rgba(26,26,46,0.025) 0px, rgba(26,26,46,0.025) 1px, transparent 1px, transparent 3px),
+      radial-gradient(ellipse 1200px 600px at 70% -10%, rgba(29,155,240,0.12), transparent 60%),
+      radial-gradient(ellipse 900px 500px at -10% 110%, rgba(230,57,70,0.10), transparent 60%),
+      radial-gradient(ellipse 800px 500px at 50% 110%, rgba(255,204,0,0.10), transparent 60%);
+    color: var(--cream);
+    font-family: 'Press Start 2P', monospace;
+    overflow: hidden;
+    image-rendering: pixelated;
+    -webkit-font-smoothing: none;
+  }
+  #app {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 16px;
+  }
+
+  /* ===== UTILITÁRIOS 8-BIT ===== */
+  .pixel-box {
+    background: var(--bg-1);
+    border: 3px solid var(--cream);
+    box-shadow:
+      0 4px 0 var(--border-dark),
+      inset 0 0 0 3px var(--bg-0);
+    padding: 16px;
+  }
+  .pixel-btn {
+    background: var(--bg-2);
+    color: var(--cream);
+    border: 3px solid var(--cream);
+    box-shadow: 0 4px 0 var(--border-dark);
+    padding: 10px 14px;
+    font-family: inherit;
+    font-size: 10px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    transition: none;
+    position: relative;
+    image-rendering: pixelated;
+  }
+  .pixel-btn:hover { background: var(--bg-3); color: var(--gold); }
+  .pixel-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--border-dark); }
+  .pixel-btn.primary {
+    background: var(--gold);
+    color: var(--cream);
+    border-color: var(--cream);
+    box-shadow: 0 4px 0 var(--velvet);
+  }
+  .pixel-btn.primary:hover { background: var(--gold-2); color: var(--cream); }
+  .pixel-btn.danger {
+    background: var(--velvet);
+    color: var(--cream);
+    border-color: var(--cream);
+  }
+
+  /* ===== Telas ===== */
+  .screen { display: none; flex: 1; flex-direction: column; }
+  .screen.active { display: flex; }
+
+  /* ===== Tela inicial ===== */
+  .home {
+    align-items: center;
+    justify-content: flex-start;
+    text-align: center;
+    gap: 16px;
+    padding-top: 12px;
+    overflow-y: auto;
+  }
+  .logo {
+    font-size: clamp(20px, 4.5vw, 36px);
+    color: var(--gold);
+    text-shadow:
+      3px 3px 0 var(--velvet),
+      6px 6px 0 var(--border-dark);
+    letter-spacing: 2px;
+    line-height: 1.2;
+    padding: 8px;
+  }
+  .subtitle {
+    color: var(--cream);
+    font-size: 10px;
+    letter-spacing: 2px;
+    margin-top: 4px;
+  }
+  .tagline {
+    color: var(--muted);
+    font-size: 9px;
+    line-height: 1.6;
+    max-width: 600px;
+  }
+
+  .phases {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    width: 100%;
+    max-width: 880px;
+    margin-top: 8px;
+  }
+  .phase-card {
+    background: var(--bg-1);
+    border: 3px solid var(--cream);
+    box-shadow: 0 4px 0 var(--border-dark);
+    padding: 14px;
+    cursor: pointer;
+    text-align: left;
+    transition: none;
+    position: relative;
+  }
+  .phase-card:hover {
+    background: var(--bg-2);
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0 var(--velvet);
+  }
+  .phase-card.completed { border-color: var(--gold); }
+  .phase-card.completed::after {
+    content: '★';
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    color: var(--gold);
+    font-size: 16px;
+    text-shadow: 2px 2px 0 var(--border-dark);
+  }
+  .phase-num {
+    color: var(--gold);
+    font-size: 8px;
+    letter-spacing: 2px;
+  }
+  .phase-title {
+    font-size: 11px;
+    color: var(--cream);
+    margin: 6px 0 8px;
+    line-height: 1.3;
+  }
+  .phase-desc {
+    color: var(--muted);
+    font-size: 7px;
+    line-height: 1.6;
+  }
+  .phase-best {
+    color: var(--gold);
+    font-size: 7px;
+    margin-top: 8px;
+    border-top: 2px dashed var(--bg-3);
+    padding-top: 6px;
+  }
+
+  .home-controls {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .a4-selector {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-1);
+    border: 3px solid var(--cream);
+    box-shadow: 0 4px 0 var(--border-dark);
+    padding: 8px 10px;
+  }
+  .a4-selector label {
+    font-size: 8px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+  .a4-options { display: flex; gap: 4px; }
+  .a4-opt {
+    background: transparent;
+    border: 2px solid var(--muted);
+    color: var(--muted);
+    padding: 5px 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 8px;
+  }
+  .a4-opt.active {
+    background: var(--gold);
+    color: var(--cream);
+    border-color: var(--cream);
+  }
+  .mic-status {
+    font-size: 8px;
+    color: var(--muted);
+    line-height: 1.5;
+    letter-spacing: 1px;
+  }
+  .mic-status.ok { color: var(--good); }
+  .mic-status.bad { color: var(--bad); }
+
+  /* ===== Tela do jogo ===== */
+  .game { gap: 10px; }
+  .hud {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    background: var(--bg-1);
+    border: 3px solid var(--cream);
+    box-shadow: 0 4px 0 var(--border-dark);
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .hud-item { display: flex; flex-direction: column; align-items: center; min-width: 50px; }
+  .hud-label { font-size: 7px; color: var(--muted); letter-spacing: 1.5px; }
+  .hud-value {
+    font-size: 14px;
+    color: var(--cream);
+    margin-top: 4px;
+    font-variant-numeric: tabular-nums;
+  }
+  .hud-value.lives { color: var(--velvet); font-size: 16px; }
+  .hud-value.gold { color: var(--gold); }
+  .hud-value.combo {
+    color: var(--velvet);
+    font-size: 14px;
+  }
+  .hud-value.combo.hot {
+    color: var(--gold);
+    animation: combo-pulse 0.5s steps(2) infinite;
+  }
+  @keyframes combo-pulse { 50% { color: var(--bad); transform: scale(1.1); } }
+
+  .target-card {
+    flex: 1;
+    background: var(--bg-1);
+    border: 3px solid var(--cream);
+    box-shadow: 0 6px 0 var(--border-dark);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .target-card.good { border-color: var(--good); box-shadow: 0 6px 0 var(--border-dark), 0 0 40px var(--good); }
+  .target-card.warn { border-color: var(--warn); }
+  .target-card.bad { border-color: var(--bad); box-shadow: 0 6px 0 var(--border-dark), 0 0 40px var(--bad); }
+
+  .prompt-label {
+    color: var(--gold);
+    font-size: 9px;
+    letter-spacing: 3px;
+    margin-bottom: 14px;
+  }
+  .note-display {
+    font-size: clamp(40px, 9vw, 72px);
+    color: var(--cream);
+    text-shadow:
+      3px 3px 0 var(--velvet),
+      6px 6px 0 var(--border-dark);
+    line-height: 1;
+    letter-spacing: 4px;
+  }
+  .note-octave {
+    font-size: 14px;
+    color: var(--gold);
+    margin-top: 14px;
+    letter-spacing: 2px;
+  }
+  .note-enharmonic {
+    font-size: 9px;
+    color: var(--muted);
+    margin-top: 8px;
+    letter-spacing: 1px;
+  }
+  .interval-display {
+    text-align: center;
+    line-height: 1.8;
+  }
+  .interval-display .ref {
+    font-size: 14px;
+    color: var(--cream);
+    margin-bottom: 12px;
+    letter-spacing: 1.5px;
+  }
+  .interval-display .ref-note {
+    font-size: 32px;
+    color: var(--gold);
+    margin-bottom: 14px;
+    text-shadow: 2px 2px 0 var(--border-dark);
+  }
+  .interval-display .arrow {
+    font-size: 18px;
+    color: var(--velvet);
+    margin-bottom: 8px;
+  }
+  .interval-display .interval-name {
+    font-size: 18px;
+    color: var(--cream);
+    text-shadow: 2px 2px 0 var(--velvet);
+    margin-bottom: 4px;
+    letter-spacing: 1.5px;
+  }
+  .scale-display {
+    text-align: center;
+    width: 100%;
+  }
+  .scale-display .scale-name {
+    font-size: 16px;
+    color: var(--cream);
+    text-shadow: 2px 2px 0 var(--velvet);
+    margin-bottom: 12px;
+    letter-spacing: 2px;
+  }
+  .scale-progress {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    margin: 12px 0;
+    flex-wrap: wrap;
+  }
+  .scale-note-tile {
+    background: var(--bg-2);
+    border: 2px solid var(--muted);
+    padding: 8px 10px;
+    font-size: 10px;
+    color: var(--muted);
+    min-width: 38px;
+    text-align: center;
+  }
+  .scale-note-tile.done { background: var(--good); color: var(--cream); border-color: var(--cream); }
+  .scale-note-tile.current {
+    background: var(--gold);
+    color: var(--cream);
+    border-color: var(--cream);
+    animation: tile-pulse 0.6s steps(2) infinite;
+  }
+  @keyframes tile-pulse { 50% { background: var(--gold-2); } }
+  .scale-current-note {
+    font-size: 32px;
+    color: var(--gold);
+    text-shadow: 2px 2px 0 var(--border-dark);
+    margin: 10px 0;
+  }
+  .ear-display {
+    text-align: center;
+  }
+  .ear-display .icon {
+    font-size: 56px;
+    margin-bottom: 12px;
+  }
+  .ear-display .hint {
+    font-size: 11px;
+    color: var(--cream);
+    margin-bottom: 8px;
+    letter-spacing: 1px;
+  }
+
+  /* SVG da partitura */
+  .staff-container {
+    background: var(--cream);
+    border: 3px solid var(--bg-0);
+    box-shadow: 0 4px 0 var(--border-dark);
+    padding: 12px;
+    margin: 14px 0;
+    display: none;
+  }
+  .staff-container.show { display: block; }
+  .staff-container svg { display: block; margin: 0 auto; }
+
+  /* ===== Afinador ===== */
+  .tuner {
+    width: 100%;
+    max-width: 540px;
+    margin-top: 14px;
+  }
+  .tuner-bar {
+    position: relative;
+    height: 36px;
+    background: var(--bg-0);
+    border: 3px solid var(--cream);
+    overflow: hidden;
+  }
+  .tuner-zone {
+    position: absolute;
+    top: 0; bottom: 0;
+    left: 45%;
+    width: 10%;
+    background: rgba(46,194,126,0.18);
+  }
+  .tuner-needle {
+    position: absolute;
+    top: 3px; bottom: 3px;
+    width: 6px;
+    background: var(--gold);
+    left: 50%;
+    transform: translateX(-50%);
+    transition: left 0.1s steps(4);
+  }
+  .tuner-needle.good { background: var(--good); }
+  .tuner-needle.warn { background: var(--warn); }
+  .tuner-needle.bad { background: var(--bad); }
+  .tuner-info {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 6px;
+    font-size: 7px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+  .detected {
+    text-align: center;
+    margin-top: 8px;
+    font-size: 8px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+  .detected strong { color: var(--cream); }
+
+  /* ===== Controles ===== */
+  .controls {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  /* ===== X / feedback flutuante ===== */
+  .floating-x {
+    position: absolute;
+    top: 30%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 120px;
+    color: var(--bad);
+    text-shadow: 4px 4px 0 var(--border-dark);
+    pointer-events: none;
+    opacity: 0;
+    z-index: 50;
+  }
+  .floating-x.show {
+    animation: x-flash 0.8s steps(8) forwards;
+  }
+  @keyframes x-flash {
+    0% { opacity: 1; transform: translate(-50%, -50%) scale(0.5); }
+    50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
+  }
+
+  .floating-points {
+    position: absolute;
+    pointer-events: none;
+    font-size: 14px;
+    color: var(--gold);
+    text-shadow: 2px 2px 0 var(--border-dark);
+    opacity: 0;
+    z-index: 50;
+  }
+  .floating-points.show {
+    animation: pts-rise 1s steps(10) forwards;
+  }
+  @keyframes pts-rise {
+    0% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(-60px); }
+  }
+
+  .particle {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    background: var(--gold);
+    pointer-events: none;
+    z-index: 40;
+  }
+
+  /* ===== Modal ===== */
+  .modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(8,5,26,0.85);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 16px;
+  }
+  .modal.active { display: flex; }
+  .modal-card {
+    background: var(--bg-1);
+    border: 4px solid var(--gold);
+    box-shadow: 0 8px 0 var(--border-dark);
+    padding: 24px;
+    max-width: 500px;
+    width: 100%;
+    text-align: center;
+  }
+  .modal-emoji { font-size: 48px; margin-bottom: 10px; }
+  .modal-title {
+    font-size: 16px;
+    color: var(--gold);
+    margin-bottom: 12px;
+    letter-spacing: 2px;
+    line-height: 1.3;
+  }
+  .modal-text { color: var(--cream); margin-bottom: 18px; line-height: 1.7; font-size: 9px; letter-spacing: 1px; }
+  .modal-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-bottom: 18px;
+    padding: 12px;
+    background: var(--bg-0);
+    border: 2px solid var(--cream);
+  }
+  .stat-item { display: flex; flex-direction: column; }
+  .stat-label { font-size: 7px; color: var(--muted); letter-spacing: 1px; }
+  .stat-value { font-size: 14px; color: var(--cream); margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .stat-value.gold { color: var(--gold); }
+
+  .achievement-banner {
+    background: var(--velvet);
+    border: 2px solid var(--gold);
+    padding: 8px 12px;
+    margin: 4px 0;
+    font-size: 9px;
+    color: var(--cream);
+    letter-spacing: 1px;
+    line-height: 1.5;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-align: left;
+  }
+  .achievement-banner .emoji { font-size: 20px; flex-shrink: 0; }
+  .achievement-banner .info { flex: 1; }
+  .achievement-banner .name { color: var(--gold); font-size: 9px; }
+  .achievement-banner .desc { font-size: 7px; color: var(--cream); margin-top: 3px; opacity: 0.85; }
+
+  /* ===== Achievements list ===== */
+  .ach-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    width: 100%;
+    max-width: 600px;
+    margin-top: 8px;
+  }
+  .ach-tile {
+    background: var(--bg-1);
+    border: 2px solid var(--muted);
+    padding: 8px 4px;
+    text-align: center;
+    opacity: 0.4;
+  }
+  .ach-tile.unlocked {
+    border-color: var(--gold);
+    opacity: 1;
+    background: var(--bg-2);
+  }
+  .ach-tile .emoji { font-size: 24px; }
+  .ach-tile .ach-name { font-size: 6px; color: var(--cream); margin-top: 4px; line-height: 1.3; letter-spacing: 0.5px; }
+
+  /* ===== Responsivo ===== */
+  @media (max-width: 700px) {
+    .phases { grid-template-columns: 1fr; }
+    .hud { padding: 8px 10px; }
+    .hud-value { font-size: 11px; }
+    .ach-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  /* ====================================================================
+     TOP GEAR OVERRIDES — outline preto em textos coloridos sobre creme
+     ==================================================================== */
+  .logo {
+    color: var(--gold);
+    font-size: clamp(28px, 6vw, 48px);
+    letter-spacing: 4px;
+    text-shadow:
+      -3px 0 0 var(--border-dark), 3px 0 0 var(--border-dark),
+      0 -3px 0 var(--border-dark), 0 3px 0 var(--border-dark),
+      -3px -3px 0 var(--border-dark), 3px -3px 0 var(--border-dark),
+      -3px 3px 0 var(--border-dark), 3px 3px 0 var(--border-dark),
+      6px 6px 0 var(--velvet),
+      12px 12px 0 var(--blue);
+  }
+  .subtitle {
+    color: var(--velvet);
+    text-shadow:
+      -1px -1px 0 var(--border-dark),
+      1px -1px 0 var(--border-dark),
+      -1px 1px 0 var(--border-dark),
+      1px 1px 0 var(--border-dark);
+  }
+  .note-display {
+    color: var(--velvet);
+    text-shadow:
+      -2px 0 0 var(--border-dark), 2px 0 0 var(--border-dark),
+      0 -2px 0 var(--border-dark), 0 2px 0 var(--border-dark),
+      -2px -2px 0 var(--border-dark), 2px -2px 0 var(--border-dark),
+      -2px 2px 0 var(--border-dark), 2px 2px 0 var(--border-dark),
+      5px 5px 0 var(--gold);
+  }
+  .hud-value.gold,
+  .stat-value.gold,
+  .phase-num,
+  .phase-best,
+  .prompt-label,
+  .note-octave,
+  .floating-points,
+  .hud-value.lives,
+  .hud-value.combo {
+    text-shadow:
+      -1px -1px 0 var(--border-dark),
+      1px -1px 0 var(--border-dark),
+      -1px 1px 0 var(--border-dark),
+      1px 1px 0 var(--border-dark);
+  }
+  .interval-display .ref-note,
+  .scale-current-note,
+  .scale-display .scale-name,
+  .interval-display .interval-name {
+    color: var(--velvet);
+    text-shadow:
+      -1px 0 0 var(--border-dark), 1px 0 0 var(--border-dark),
+      0 -1px 0 var(--border-dark), 0 1px 0 var(--border-dark),
+      2px 2px 0 var(--gold);
+  }
+  .floating-x {
+    color: var(--velvet);
+    text-shadow:
+      -3px -3px 0 var(--border-dark), 3px -3px 0 var(--border-dark),
+      -3px 3px 0 var(--border-dark), 3px 3px 0 var(--border-dark),
+      6px 6px 0 var(--gold);
+  }
+  .staff-container {
+    background: var(--bg-1);
+    border: 3px solid var(--cream);
+  }
+  .modal {
+    background: rgba(26,26,46,0.75);
+  }
+  .modal-card {
+    background: var(--bg-1);
+    border: 4px solid var(--velvet);
+    box-shadow: 0 8px 0 var(--border-dark);
+  }
+  .modal-title {
+    color: var(--velvet);
+    text-shadow:
+      -1px -1px 0 var(--border-dark),
+      1px -1px 0 var(--border-dark),
+      -1px 1px 0 var(--border-dark),
+      1px 1px 0 var(--border-dark);
+  }
+  .modal-text { color: var(--cream); }
+  .achievement-banner {
+    background: var(--velvet);
+    color: var(--bg-1);
+    border: 2px solid var(--border-dark);
+  }
+  .achievement-banner .name { color: var(--gold); }
+  .achievement-banner .desc { color: var(--bg-1); opacity: 1; }
+  .scale-note-tile.done { color: var(--bg-1); }
+  .scale-note-tile.current { color: var(--cream); }
+  .pixel-btn {
+    background: var(--bg-1);
+    color: var(--cream);
+  }
+  .pixel-btn:hover {
+    background: var(--gold);
+    color: var(--cream);
+  }
+  .pixel-btn.primary {
+    background: var(--velvet);
+    color: var(--bg-1);
+    border-color: var(--border-dark);
+    box-shadow: 0 4px 0 var(--border-dark);
+  }
+  .pixel-btn.primary:hover {
+    background: var(--velvet-2);
+    color: var(--bg-1);
+  }
+  .a4-opt {
+    background: var(--bg-1);
+    color: var(--cream);
+    border-color: var(--cream);
+  }
+  .a4-opt.active {
+    background: var(--velvet);
+    color: var(--bg-1);
+    border-color: var(--border-dark);
+  }
+  .a4-opt:hover:not(.active) {
+    background: var(--gold);
+  }
+  .phase-card {
+    background: var(--bg-1);
+  }
+  .phase-card:hover {
+    background: var(--gold);
+    box-shadow: 6px 6px 0 var(--velvet);
+  }
+  .phase-card.completed {
+    border-color: var(--velvet);
+    background: var(--gold);
+  }
+  .phase-card.completed::after {
+    color: var(--velvet);
+    text-shadow:
+      -1px -1px 0 var(--border-dark),
+      1px -1px 0 var(--border-dark),
+      -1px 1px 0 var(--border-dark),
+      1px 1px 0 var(--border-dark);
+  }
+  .hud { background: var(--bg-1); }
+  .target-card { background: var(--bg-1); }
+  .target-card.good { box-shadow: 0 6px 0 var(--border-dark), 0 0 30px var(--good); }
+  .target-card.bad { box-shadow: 0 6px 0 var(--border-dark), 0 0 30px var(--bad); }
+  .tuner-bar { background: var(--bg-3); }
+  .modal-stats { background: var(--bg-2); }
+  .ach-tile { background: var(--bg-1); }
+  .ach-tile.unlocked { background: var(--gold); border-color: var(--border-dark); }
+  .a4-selector { background: var(--bg-1); }
+  .phase-best { border-top-color: var(--bg-3); }
+  .tagline { color: var(--cream); }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- Tela inicial -->
+  <section id="screen-home" class="screen home active">
+    <div>
+      <div class="logo">CELLO GAMES</div>
+      <div class="subtitle">16-BIT MUSIC ARCADE</div>
+    </div>
+
+    <p class="tagline">Aparece a nota, voce toca, o afinador valida em tempo real. 6 fases, 3 vidas por fase, combo multiplicador.</p>
+
+    <div class="phases" id="phases-grid"></div>
+
+    <div class="home-controls">
+      <div class="a4-selector">
+        <label>LÁ4 =</label>
+        <div class="a4-options">
+          <button class="a4-opt active" data-a4="440">440</button>
+          <button class="a4-opt" data-a4="442">442</button>
+          <button class="a4-opt" data-a4="443">443</button>
+        </div>
+      </div>
+      <button class="pixel-btn" id="btn-show-achievements">🏆 CONQUISTAS</button>
+    </div>
+
+    <p id="mic-status" class="mic-status">Ao escolher uma fase, vou pedir permissao do microfone.</p>
+  </section>
+
+  <!-- Tela do jogo -->
+  <section id="screen-game" class="screen game">
+    <div class="hud">
+      <div class="hud-item">
+        <div class="hud-label">FASE</div>
+        <div class="hud-value gold" id="hud-phase">1</div>
+      </div>
+      <div class="hud-item">
+        <div class="hud-label">VIDAS</div>
+        <div class="hud-value lives" id="hud-lives">♥♥♥</div>
+      </div>
+      <div class="hud-item">
+        <div class="hud-label">PROGRESSO</div>
+        <div class="hud-value" id="hud-progress">0/0</div>
+      </div>
+      <div class="hud-item">
+        <div class="hud-label">COMBO</div>
+        <div class="hud-value combo" id="hud-combo">×1</div>
+      </div>
+      <div class="hud-item">
+        <div class="hud-label">PONTOS</div>
+        <div class="hud-value gold" id="hud-score">0</div>
+      </div>
+    </div>
+
+    <div class="target-card" id="target-card">
+      <div class="prompt-label" id="prompt-label">TOQUE ESTA NOTA</div>
+
+      <!-- Display de nota simples (fase 1-3) -->
+      <div id="display-note" style="display:block; text-align:center;">
+        <div class="note-display" id="note-display">LA</div>
+        <div class="note-octave" id="note-octave"></div>
+        <div class="note-enharmonic" id="note-enharmonic"></div>
+      </div>
+
+      <!-- Display de intervalo (fase 4) -->
+      <div id="display-interval" class="interval-display" style="display:none;">
+        <div class="ref">REFERÊNCIA</div>
+        <div class="ref-note" id="interval-ref-note">LA 3</div>
+        <button class="pixel-btn" id="btn-play-ref">🔊 OUVIR DE NOVO</button>
+        <div class="arrow">▼</div>
+        <div class="interval-name" id="interval-name">3a MAIOR ASCENDENTE</div>
+        <div class="note-octave" id="interval-step">Toque a nota do intervalo</div>
+      </div>
+
+      <!-- Display de escala (fase 5) -->
+      <div id="display-scale" class="scale-display" style="display:none;">
+        <div class="scale-name" id="scale-name">DÓ MAIOR</div>
+        <div class="scale-progress" id="scale-progress"></div>
+        <div class="scale-current-note" id="scale-current-note">DÓ</div>
+        <div class="note-octave" id="scale-current-oct">Oitava 3</div>
+      </div>
+
+      <!-- Display de ouvido (fase 6) -->
+      <div id="display-ear" class="ear-display" style="display:none;">
+        <div class="icon">👂</div>
+        <div class="hint">OUÇA E REPRODUZA</div>
+        <button class="pixel-btn primary" id="btn-play-ear" style="margin-top: 8px;">🔊 TOCAR NOTA</button>
+        <div class="note-octave" id="ear-revealed" style="margin-top: 14px; min-height: 20px;"></div>
+      </div>
+
+      <!-- Partitura SVG (fase 5) -->
+      <div class="staff-container" id="staff-container">
+        <div id="staff-svg"></div>
+      </div>
+
+      <div class="tuner">
+        <div class="tuner-bar">
+          <div class="tuner-zone"></div>
+          <div class="tuner-needle" id="tuner-needle"></div>
+        </div>
+        <div class="tuner-info">
+          <span>-50¢</span>
+          <span>AFINADO</span>
+          <span>+50¢</span>
+        </div>
+        <div class="detected">
+          DETECTADO: <strong id="detected-note">—</strong>
+          <span id="detected-freq"></span>
+        </div>
+      </div>
+
+      <div class="floating-x" id="floating-x">✕</div>
+    </div>
+
+    <div class="controls">
+      <button class="pixel-btn" id="btn-skip">PULAR</button>
+      <button class="pixel-btn" id="btn-toggle-staff" style="display:none;">📜 MOSTRAR PARTITURA</button>
+      <button class="pixel-btn primary" id="btn-home">◀ TROCAR DE FASE</button>
+    </div>
+  </section>
+
+  <!-- Modal fim de fase -->
+  <div class="modal" id="modal-win">
+    <div class="modal-card">
+      <div class="modal-emoji" id="win-emoji">🎻</div>
+      <div class="modal-title" id="win-title">FASE COMPLETA</div>
+      <p class="modal-text" id="win-text">Texto.</p>
+      <div class="modal-stats">
+        <div class="stat-item">
+          <span class="stat-label">TEMPO</span>
+          <span class="stat-value" id="stat-time">—</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">ACERTOS / TOTAL</span>
+          <span class="stat-value gold" id="stat-hits">—</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">MAIOR SEQUÊNCIA</span>
+          <span class="stat-value" id="stat-streak">—</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">PONTUAÇÃO</span>
+          <span class="stat-value gold" id="stat-score">—</span>
+        </div>
+      </div>
+      <div id="new-achievements"></div>
+      <div class="controls" style="margin-top: 12px;">
+        <button class="pixel-btn primary" id="btn-next-phase">PRÓXIMA FASE</button>
+        <button class="pixel-btn" id="btn-replay">REFAZER</button>
+        <button class="pixel-btn" id="btn-home-modal">MENU</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal achievements -->
+  <div class="modal" id="modal-ach">
+    <div class="modal-card" style="max-width: 640px;">
+      <div class="modal-emoji">🏆</div>
+      <div class="modal-title">CONQUISTAS</div>
+      <div class="ach-grid" id="ach-grid"></div>
+      <div class="controls" style="margin-top: 16px;">
+        <button class="pixel-btn primary" id="btn-close-ach">FECHAR</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ============================================================
+// CONFIG MUSICAL
+// ============================================================
+let A4_FREQ = 440;
+const NOTAS_LATINO = ['Dó','Dó#','Ré','Ré#','Mi','Fá','Fá#','Sol','Sol#','Lá','Lá#','Si'];
+const ENARMONICOS = { 'Dó#':'Réb', 'Ré#':'Mib', 'Fá#':'Solb', 'Sol#':'Láb', 'Lá#':'Sib' };
+const CELLO_MIDI_MIN = 36; // Dó2
+const CELLO_MIDI_MAX = 76; // Mi5
+const NATURAIS = [0, 2, 4, 5, 7, 9, 11];
+const TODAS_12 = [0,1,2,3,4,5,6,7,8,9,10,11];
+
+function midiToFreq(midi) { return A4_FREQ * Math.pow(2, (midi - 69) / 12); }
+function freqToMidi(hz) { return 69 + 12 * Math.log2(hz / A4_FREQ); }
+function midiToNote(midi) {
+  const r = Math.round(midi);
+  const cents = (midi - r) * 100;
+  const idx = ((r % 12) + 12) % 12;
+  return { name: NOTAS_LATINO[idx], idx, octave: Math.floor(r / 12) - 1, cents, midi: r };
+}
+function midiToName(midi) { const n = midiToNote(midi); return `${n.name} ${n.octave}`; }
+
+// ============================================================
+// FASES
+// ============================================================
+const INTERVALOS = {
+  3: { name: '3ª menor', short: '3m' },
+  4: { name: '3ª maior', short: '3M' },
+  5: { name: '4ª justa', short: '4J' },
+  7: { name: '5ª justa', short: '5J' },
+  8: { name: '6ª menor', short: '6m' },
+  9: { name: '6ª maior', short: '6M' },
+  12:{ name: 'oitava',  short: '8' },
+};
+const INTERVALOS_KEYS = Object.keys(INTERVALOS).map(Number);
+
+const ESCALAS = [
+  { nome: 'Dó Maior',  notas: [48,50,52,53,55,57,59,60], armadura: '' },
+  { nome: 'Sol Maior', notas: [43,45,47,48,50,52,54,55], armadura: '#' },
+  { nome: 'Ré Maior',  notas: [50,52,54,55,57,59,61,62], armadura: '##' },
+  { nome: 'Fá Maior',  notas: [41,43,45,46,48,50,52,53], armadura: 'b' },
+  { nome: 'Lá menor',  notas: [45,47,48,50,52,53,55,57], armadura: '' },
+  { nome: 'Mi menor',  notas: [40,42,43,45,47,48,50,52], armadura: '#' },
+  { nome: 'Ré menor',  notas: [38,40,41,43,45,46,48,50], armadura: 'b' },
+];
+
+const PHASES = {
+  1: { name: 'Notas Naturais', desc: 'Dó Ré Mi Fá Sol Lá Si — qualquer oitava do cello', type: 'note', total: 30, pitchClasses: NATURAIS, requireOctave: false },
+  2: { name: 'Sustenidos & Bemóis', desc: '12 cromáticas — qualquer oitava', type: 'note', total: 35, pitchClasses: TODAS_12, requireOctave: false },
+  3: { name: 'Com Oitavas', desc: 'A oitava conta. Sol 2 ≠ Sol 3', type: 'note', total: 35, pitchClasses: TODAS_12, requireOctave: true },
+  4: { name: 'Intervalos', desc: 'Ouça a referência, toque o intervalo pedido', type: 'interval', total: 20 },
+  5: { name: 'Escalas', desc: '7 escalas. Pode abrir a partitura como apoio', type: 'scale', total: 7 },
+  6: { name: 'Ouvido (Maestro)', desc: 'O app toca, você reproduz. Sem dica visual.', type: 'ear', total: 20 },
+};
+
+// ============================================================
+// SAVE / LOAD (localStorage)
+// ============================================================
+const SAVE_KEY = 'decifra-notas-v2';
+function defaultSave() {
+  return {
+    bestScore: {1:0,2:0,3:0,4:0,5:0,6:0},
+    bestTime: {1:null,2:null,3:null,4:null,5:null,6:null},
+    completed: {},
+    achievements: {},
+  };
+}
+function loadSave() {
+  try { return Object.assign(defaultSave(), JSON.parse(localStorage.getItem(SAVE_KEY) || '{}')); }
+  catch { return defaultSave(); }
+}
+function persistSave() {
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(saveData)); } catch {}
+}
+let saveData = loadSave();
+
+// ============================================================
+// ACHIEVEMENTS
+// ============================================================
+const ACHIEVEMENTS = {
+  primeira: { emoji:'🎯', name:'Primeira nota', desc:'Acertou sua primeira nota' },
+  velocista: { emoji:'⚡', name:'Velocista', desc:'10 acertos em 30 segundos' },
+  afinador:  { emoji:'🎵', name:'Afinador Pro', desc:'5 acertos seguidos com ±3¢' },
+  semcair:   { emoji:'❤️', name:'Sem Cair', desc:'Fase sem perder vida' },
+  combo:     { emoji:'🔥', name:'Combo Fogo', desc:'Atingiu combo ×4' },
+  maestro:   { emoji:'🎻', name:'Maestro', desc:'Completou as 6 fases' },
+  ouvido:    { emoji:'👂', name:'Ouvido Pro', desc:'Completou fase 6' },
+  leitor:    { emoji:'📜', name:'Leitor', desc:'Fase 5 sem abrir partitura' },
+};
+function unlock(key) {
+  if (saveData.achievements[key]) return null;
+  saveData.achievements[key] = Date.now();
+  persistSave();
+  return ACHIEVEMENTS[key];
+}
+
+// ============================================================
+// PITCH DETECTION — YIN
+// ============================================================
+let audioCtx = null, micStream = null, analyser = null, buffer = null, rafId = null;
+let yinBuffer = null;
+
+async function startMic() {
+  try {
+    micStream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation:false, noiseSuppression:false, autoGainControl:false }
+    });
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') await audioCtx.resume();
+    const src = audioCtx.createMediaStreamSource(micStream);
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 4096;
+    buffer = new Float32Array(analyser.fftSize);
+    yinBuffer = new Float32Array(Math.floor(analyser.fftSize / 2));
+    src.connect(analyser);
+    return true;
+  } catch (err) {
+    console.error('Mic error:', err);
+    return false;
+  }
+}
+function stopMic() {
+  if (rafId) cancelAnimationFrame(rafId);
+  rafId = null;
+  if (micStream) micStream.getTracks().forEach(t => t.stop());
+  audioCtx && audioCtx.close();
+  audioCtx = micStream = analyser = buffer = yinBuffer = null;
+}
+
+function yin(buf, sr, threshold = 0.15) {
+  const halfN = yinBuffer.length;
+  let rms = 0;
+  for (let i = 0; i < buf.length; i++) rms += buf[i] * buf[i];
+  rms = Math.sqrt(rms / buf.length);
+  if (rms < 0.01) return -1;
+
+  for (let tau = 0; tau < halfN; tau++) {
+    let sum = 0;
+    for (let i = 0; i < halfN; i++) { const d = buf[i] - buf[i + tau]; sum += d * d; }
+    yinBuffer[tau] = sum;
+  }
+  yinBuffer[0] = 1;
+  let runningSum = 0;
+  for (let tau = 1; tau < halfN; tau++) {
+    runningSum += yinBuffer[tau];
+    yinBuffer[tau] *= tau / runningSum;
+  }
+  let tau = 2;
+  while (tau < halfN) {
+    if (yinBuffer[tau] < threshold) {
+      while (tau + 1 < halfN && yinBuffer[tau + 1] < yinBuffer[tau]) tau++;
+      break;
+    }
+    tau++;
+  }
+  if (tau === halfN || yinBuffer[tau] >= threshold) return -1;
+  let bt;
+  const x0 = tau < 1 ? tau : tau - 1;
+  const x2 = tau + 1 < halfN ? tau + 1 : tau;
+  if (x0 === tau) bt = yinBuffer[tau] <= yinBuffer[x2] ? tau : x2;
+  else if (x2 === tau) bt = yinBuffer[tau] <= yinBuffer[x0] ? tau : x0;
+  else {
+    const s0 = yinBuffer[x0], s1 = yinBuffer[tau], s2 = yinBuffer[x2];
+    bt = tau + (s2 - s0) / (2 * (2*s1 - s2 - s0));
+  }
+  const freq = audioCtx ? audioCtx.sampleRate / bt : sr / bt;
+  if (freq < 40 || freq > 1300) return -1;
+  return freq;
+}
+
+// Smoothing — média móvel
+const SMOOTH_WINDOW = 4;
+let centsHistory = [];
+function smoothCents(c) {
+  centsHistory.push(c);
+  if (centsHistory.length > SMOOTH_WINDOW) centsHistory.shift();
+  let s = 0; for (const v of centsHistory) s += v;
+  return s / centsHistory.length;
+}
+function resetSmoothing() { centsHistory = []; }
+
+// ============================================================
+// SONS 8-BIT (osciladores)
+// ============================================================
+function beep(freq, duration, type='square', volume=0.06) {
+  if (!audioCtx) return;
+  const t = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, t);
+  gain.gain.setValueAtTime(volume, t);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.start(t); osc.stop(t + duration + 0.02);
+}
+function sfxHit()    { beep(659,0.06); setTimeout(()=>beep(880,0.08),60); }
+function sfxPerfect(){ beep(659,0.05); setTimeout(()=>beep(880,0.05),50); setTimeout(()=>beep(1175,0.1),100); }
+function sfxMiss()   { beep(220,0.12,'sawtooth',0.05); setTimeout(()=>beep(146,0.18,'sawtooth',0.05),120); }
+function sfxCombo()  { beep(880,0.04); setTimeout(()=>beep(1175,0.04),40); setTimeout(()=>beep(1568,0.08),80); }
+function sfxLevel()  { [523,659,784,1047].forEach((f,i)=>setTimeout(()=>beep(f,0.12),i*90)); }
+function sfxOver()   { [523,466,392,330].forEach((f,i)=>setTimeout(()=>beep(f,0.18,'sawtooth'),i*140)); }
+function sfxAch()    { [880,1175,1568,2093].forEach((f,i)=>setTimeout(()=>beep(f,0.08),i*70)); }
+
+// Tocar nota real (referência fase 4, fase 6)
+function playNote(midi, duration=1.2) {
+  if (!audioCtx) return;
+  const f = midiToFreq(midi);
+  const t = audioCtx.currentTime;
+  // tom cello-ish: triangular + um pouco de detune
+  const osc1 = audioCtx.createOscillator();
+  const osc2 = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc1.type = 'triangle'; osc1.frequency.value = f;
+  osc2.type = 'sawtooth'; osc2.frequency.value = f; osc2.detune.value = -5;
+  const g2 = audioCtx.createGain(); g2.gain.value = 0.3;
+  osc2.connect(g2); g2.connect(gain);
+  osc1.connect(gain); gain.connect(audioCtx.destination);
+  gain.gain.setValueAtTime(0, t);
+  gain.gain.linearRampToValueAtTime(0.18, t + 0.04);
+  gain.gain.setValueAtTime(0.18, t + duration - 0.2);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+  osc1.start(t); osc2.start(t);
+  osc1.stop(t + duration); osc2.stop(t + duration);
+}
+
+// ============================================================
+// PARTÍCULAS
+// ============================================================
+function spawnParticles(x, y, n=10) {
+  const container = document.getElementById('target-card');
+  const rect = container.getBoundingClientRect();
+  for (let i = 0; i < n; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    p.style.left = (x - rect.left) + 'px';
+    p.style.top = (y - rect.top) + 'px';
+    const angle = (Math.PI * 2 * i) / n + Math.random()*0.5;
+    const speed = 60 + Math.random()*40;
+    const dx = Math.cos(angle) * speed;
+    const dy = Math.sin(angle) * speed - 30;
+    p.animate([
+      { transform: 'translate(0,0)', opacity: 1 },
+      { transform: `translate(${dx}px, ${dy + 80}px)`, opacity: 0 }
+    ], { duration: 700, easing: 'cubic-bezier(.4,0,.6,1)' });
+    container.appendChild(p);
+    setTimeout(() => p.remove(), 700);
+  }
+}
+
+function showFloatingPoints(text, color) {
+  const card = document.getElementById('target-card');
+  const el = document.createElement('div');
+  el.className = 'floating-points show';
+  el.textContent = text;
+  if (color) el.style.color = color;
+  const cr = card.getBoundingClientRect();
+  el.style.left = (cr.width * 0.5 - 30) + 'px';
+  el.style.top = (cr.height * 0.55) + 'px';
+  card.appendChild(el);
+  setTimeout(() => el.remove(), 1000);
+}
+
+function showX() {
+  const x = document.getElementById('floating-x');
+  x.classList.remove('show');
+  void x.offsetWidth; // reset animation
+  x.classList.add('show');
+  setTimeout(() => x.classList.remove('show'), 800);
+}
+
+// ============================================================
+// JOGO — estado e geração de itens
+// ============================================================
+const HOLD_MS = 500;
+const CENTS_PERFECT = 10;
+const CENTS_OK = 25;
+
+const state = {
+  phaseId: 1,
+  phase: null,
+  items: [],
+  itemIndex: 0,
+  current: null,        // alvo atual (estrutura depende do tipo)
+  subStep: 0,           // pra escalas: qual nota da escala estamos
+  intervalStage: 0,     // pra intervalos: 0 = aguardando tocar
+  // pontuação
+  score: 0,
+  hits: 0,
+  misses: 0,
+  lives: 3,
+  streak: 0,
+  maxStreak: 0,
+  combo: 1,
+  // tempo
+  startTime: 0,
+  elapsedSec: 0,
+  // detecção
+  matchStartTime: null,
+  // achievement tracking
+  perfectInRow: 0,
+  hitTimestamps: [],
+  livesLost: 0,
+  staffOpenedThisPhase: false,
+  newAchievements: [],
+};
+
+function generateItems(phase) {
+  const items = [];
+  switch (phase.type) {
+    case 'note': {
+      for (let i = 0; i < phase.total; i++) {
+        const pc = phase.pitchClasses[Math.floor(Math.random()*phase.pitchClasses.length)];
+        const cands = [];
+        for (let m = CELLO_MIDI_MIN; m <= CELLO_MIDI_MAX; m++) {
+          if (((m%12)+12)%12 === pc) cands.push(m);
+        }
+        const midi = phase.requireOctave
+          ? cands[Math.floor(Math.random()*cands.length)]
+          : cands[Math.floor(cands.length/2)];
+        // evita repetir igual ao anterior
+        if (items.length && items[items.length-1].midi === midi && items[items.length-1].pc === pc) { i--; continue; }
+        items.push({ type:'note', midi, pc, requireOctave: phase.requireOctave });
+      }
+      return items;
+    }
+    case 'interval': {
+      for (let i = 0; i < phase.total; i++) {
+        const semitons = INTERVALOS_KEYS[Math.floor(Math.random()*INTERVALOS_KEYS.length)];
+        // escolhe base que mantém alvo dentro do range
+        const baseMin = CELLO_MIDI_MIN;
+        const baseMax = CELLO_MIDI_MAX - semitons;
+        const base = baseMin + Math.floor(Math.random() * (baseMax - baseMin + 1));
+        items.push({ type:'interval', base, semitons, target: base + semitons });
+      }
+      return items;
+    }
+    case 'scale': {
+      // escolhe phase.total escalas únicas, sem repetir
+      const pool = [...ESCALAS];
+      for (let i = pool.length-1; i>0; i--) { const j=Math.floor(Math.random()*(i+1)); [pool[i],pool[j]]=[pool[j],pool[i]]; }
+      for (let i = 0; i < Math.min(phase.total, pool.length); i++) {
+        items.push({ type:'scale', escala: pool[i] });
+      }
+      return items;
+    }
+    case 'ear': {
+      const pcs = NATURAIS; // mantém naturais pra ser justo (sem sustenidos no ouvido)
+      for (let i = 0; i < phase.total; i++) {
+        const pc = pcs[Math.floor(Math.random()*pcs.length)];
+        const cands = [];
+        for (let m = 48; m <= 69; m++) { // C3 a A4 — faixa confortável pra ouvido
+          if (((m%12)+12)%12 === pc) cands.push(m);
+        }
+        const midi = cands[Math.floor(Math.random()*cands.length)];
+        items.push({ type:'ear', midi, pc });
+      }
+      return items;
+    }
+  }
+  return [];
+}
+
+// ============================================================
+// RENDER
+// ============================================================
+function showDisplay(type) {
+  ['note','interval','scale','ear'].forEach(n => {
+    document.getElementById('display-'+n).style.display = (n===type) ? 'block' : 'none';
+  });
+}
+
+function renderTarget() {
+  const it = state.current;
+  const promptLabel = document.getElementById('prompt-label');
+  document.getElementById('btn-toggle-staff').style.display = (it.type==='scale') ? 'inline-block' : 'none';
+  document.getElementById('staff-container').classList.remove('show');
+
+  if (it.type === 'note') {
+    showDisplay('note');
+    promptLabel.textContent = 'TOQUE ESTA NOTA';
+    const n = midiToNote(it.midi);
+    document.getElementById('note-display').textContent = n.name.toUpperCase().replace('#','♯');
+    document.getElementById('note-octave').textContent = it.requireOctave ? `OITAVA ${n.octave}` : '';
+    const enh = ENARMONICOS[n.name];
+    document.getElementById('note-enharmonic').textContent = enh ? `também: ${enh}` : '';
+  }
+  else if (it.type === 'interval') {
+    showDisplay('interval');
+    promptLabel.textContent = 'INTERVALO';
+    const baseN = midiToNote(it.base);
+    document.getElementById('interval-ref-note').textContent = `${baseN.name.toUpperCase().replace('#','♯')} ${baseN.octave}`;
+    document.getElementById('interval-name').textContent = INTERVALOS[it.semitons].name.toUpperCase() + ' ACIMA';
+    document.getElementById('interval-step').textContent = 'Toque a nota do intervalo';
+    // toca a referência ao mostrar
+    setTimeout(() => playNote(it.base, 1.5), 200);
+  }
+  else if (it.type === 'scale') {
+    showDisplay('scale');
+    promptLabel.textContent = 'TOQUE A ESCALA';
+    document.getElementById('scale-name').textContent = it.escala.nome.toUpperCase();
+    const prog = document.getElementById('scale-progress');
+    prog.innerHTML = '';
+    it.escala.notas.forEach((m, idx) => {
+      const n = midiToNote(m);
+      const tile = document.createElement('div');
+      tile.className = 'scale-note-tile';
+      if (idx < state.subStep) tile.classList.add('done');
+      if (idx === state.subStep) tile.classList.add('current');
+      tile.textContent = n.name.replace('#','♯');
+      prog.appendChild(tile);
+    });
+    const cur = midiToNote(it.escala.notas[state.subStep]);
+    document.getElementById('scale-current-note').textContent = cur.name.toUpperCase().replace('#','♯');
+    document.getElementById('scale-current-oct').textContent = `OITAVA ${cur.octave} (${state.subStep+1} de ${it.escala.notas.length})`;
+    renderStaff(it.escala, state.subStep);
+  }
+  else if (it.type === 'ear') {
+    showDisplay('ear');
+    promptLabel.textContent = 'TREINO DE OUVIDO';
+    document.getElementById('ear-revealed').textContent = '';
+    // toca automaticamente uma vez
+    setTimeout(() => playNote(it.midi, 1.4), 200);
+  }
+
+  document.getElementById('target-card').classList.remove('good','warn','bad');
+  setTunerNeedle(null);
+}
+
+function renderHud() {
+  document.getElementById('hud-phase').textContent = state.phaseId;
+  document.getElementById('hud-score').textContent = state.score;
+  document.getElementById('hud-progress').textContent = `${state.itemIndex}/${state.phase.total}`;
+  document.getElementById('hud-lives').textContent = '♥'.repeat(state.lives) + '♡'.repeat(3-state.lives);
+  document.getElementById('hud-combo').textContent = `×${state.combo}`;
+  const cEl = document.getElementById('hud-combo');
+  if (state.combo >= 3) cEl.classList.add('hot'); else cEl.classList.remove('hot');
+}
+
+function setTunerNeedle(cents, kind) {
+  const needle = document.getElementById('tuner-needle');
+  const card = document.getElementById('target-card');
+  if (cents === null) {
+    needle.style.left = '50%';
+    needle.className = 'tuner-needle';
+    return;
+  }
+  const clamped = Math.max(-60, Math.min(60, cents));
+  needle.style.left = `${50 + (clamped/60)*50}%`;
+  needle.className = `tuner-needle ${kind||''}`;
+}
+
+function updateDetected(freq, note) {
+  const dn = document.getElementById('detected-note');
+  const df = document.getElementById('detected-freq');
+  if (freq < 0) { dn.textContent = '—'; df.textContent = ''; return; }
+  dn.textContent = `${note.name.toUpperCase().replace('#','♯')} ${note.octave}`;
+  df.textContent = ` (${freq.toFixed(1)} Hz)`;
+}
+
+// ============================================================
+// PARTITURA SVG (clave de Fá)
+// ============================================================
+function renderStaff(escala, highlightIdx) {
+  const W = 600, H = 140;
+  const top = 30, lineGap = 10; // 5 linhas
+  const lines = [0,1,2,3,4].map(i => top + i*lineGap);
+  const baselineY = lines[4]; // linha do bottom = Sol 2 (MIDI 43)
+  // Cada step diatônico para cima = -lineGap/2
+  const noteToDiatonic = {0:0, 1:0, 2:1, 3:1, 4:2, 5:3, 6:3, 7:4, 8:4, 9:5, 10:5, 11:6};
+  function midiToY(midi) {
+    const noteIdx = ((midi%12)+12)%12;
+    const octave = Math.floor(midi/12)-1;
+    const diatonic = noteToDiatonic[noteIdx];
+    // baseline Sol 2 = MIDI 43, octave 2, diatonic 4
+    const totalSteps = (octave-2)*7 + (diatonic-4);
+    return baselineY - totalSteps * (lineGap/2);
+  }
+  function isSharp(midi) { return [1,3,6,8,10].includes(((midi%12)+12)%12); }
+  function isFlat(midi, armadura) {
+    if (!armadura.includes('b')) return false;
+    const pc = ((midi%12)+12)%12;
+    return [10,3,8,1,6].includes(pc); // Bb, Eb, Ab, Db, Gb
+  }
+
+  let svg = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="background:#ffffff">`;
+  // pentagrama
+  lines.forEach(y => { svg += `<line x1="20" y1="${y}" x2="${W-20}" y2="${y}" stroke="#1a1a2e" stroke-width="1.2"/>`; });
+  // clave de Fá (símbolo unicode com fallback "F:")
+  svg += `<text x="28" y="${baselineY-2}" font-size="34" font-family="serif" fill="#1a1a2e" font-weight="bold">𝄢</text>`;
+  // armadura (sustenidos ou bemóis)
+  const armX = 70;
+  if (escala.armadura.includes('#')) {
+    // ordem de sustenidos: Fá# Dó# Sol# Ré# Lá# Mi# Si#
+    const sharpMidis = [54, 61, 56, 51, 58]; // Fá#3, Dó#4, Sol#3, Ré#3, Lá#3 — alturas usuais
+    const count = escala.armadura.length;
+    for (let i = 0; i < count; i++) {
+      const m = sharpMidis[i];
+      svg += `<text x="${armX + i*10}" y="${midiToY(m)+4}" font-size="18" fill="#1a1a2e" font-family="serif">♯</text>`;
+    }
+  }
+  if (escala.armadura.includes('b')) {
+    const flatMidis = [58, 53, 60, 55]; // Si♭3, Mi♭3, Lá♭3, Ré♭4
+    const count = (escala.armadura.match(/b/g)||[]).length;
+    for (let i = 0; i < count; i++) {
+      const m = flatMidis[i];
+      svg += `<text x="${armX + i*10}" y="${midiToY(m)+4}" font-size="18" fill="#1a1a2e" font-family="serif">♭</text>`;
+    }
+  }
+  // notas
+  const noteX0 = 130;
+  const noteGap = (W - noteX0 - 30) / escala.notas.length;
+  escala.notas.forEach((m, i) => {
+    const x = noteX0 + i*noteGap + noteGap/2;
+    const y = midiToY(m);
+    const isCurrent = (i === highlightIdx);
+    const isDone = (i < highlightIdx);
+    const color = isCurrent ? '#e63946' : (isDone ? '#06b870' : '#1a1a2e');
+    // linhas suplementares se precisar
+    if (y > lines[4]) {
+      for (let ly = lines[4] + lineGap; ly <= y + 0.5; ly += lineGap) {
+        svg += `<line x1="${x-10}" y1="${ly}" x2="${x+10}" y2="${ly}" stroke="#1a1a2e" stroke-width="1.2"/>`;
+      }
+    }
+    if (y < lines[0]) {
+      for (let ly = lines[0] - lineGap; ly >= y - 0.5; ly -= lineGap) {
+        svg += `<line x1="${x-10}" y1="${ly}" x2="${x+10}" y2="${ly}" stroke="#1a1a2e" stroke-width="1.2"/>`;
+      }
+    }
+    // cabeça da nota
+    svg += `<ellipse cx="${x}" cy="${y}" rx="7" ry="5" fill="${color}" transform="rotate(-15 ${x} ${y})"/>`;
+    // haste
+    if (y > top + 2*lineGap) {
+      svg += `<line x1="${x+6}" y1="${y}" x2="${x+6}" y2="${y-28}" stroke="${color}" stroke-width="1.5"/>`;
+    } else {
+      svg += `<line x1="${x-6}" y1="${y}" x2="${x-6}" y2="${y+28}" stroke="${color}" stroke-width="1.5"/>`;
+    }
+  });
+  // título e legenda
+  svg += `<text x="${W/2}" y="${H-8}" text-anchor="middle" font-family="monospace" font-size="11" fill="#1a1a2e">${escala.nome}</text>`;
+  svg += `</svg>`;
+  document.getElementById('staff-svg').innerHTML = svg;
+}
+
+// ============================================================
+// LOOP DE DETECÇÃO
+// ============================================================
+function getCurrentTargetMidi() {
+  const it = state.current;
+  if (it.type === 'note') return it.requireOctave ? it.midi : null; // null = pitch class only
+  if (it.type === 'interval') return it.target;
+  if (it.type === 'scale') return it.escala.notas[state.subStep];
+  if (it.type === 'ear') return it.midi;
+  return null;
+}
+function getCurrentTargetPc() {
+  const it = state.current;
+  if (it.type === 'note') return it.pc;
+  return null;
+}
+
+function tick() {
+  rafId = requestAnimationFrame(tick);
+  if (!analyser || !buffer) return;
+  analyser.getFloatTimeDomainData(buffer);
+  const freq = yin(buffer, audioCtx.sampleRate);
+  const card = document.getElementById('target-card');
+
+  if (freq < 0) {
+    updateDetected(-1);
+    setTunerNeedle(null);
+    card.classList.remove('good','warn','bad');
+    state.matchStartTime = null;
+    resetSmoothing();
+    return;
+  }
+
+  const note = midiToNote(freqToMidi(freq));
+  updateDetected(freq, note);
+
+  // É a nota certa?
+  const targetMidi = getCurrentTargetMidi();
+  const targetPc = getCurrentTargetPc();
+  const sameNote = (targetMidi !== null) ? (note.midi === targetMidi) : (note.idx === targetPc);
+
+  if (!sameNote) {
+    setTunerNeedle(null);
+    card.classList.remove('good','warn','bad');
+    state.matchStartTime = null;
+    resetSmoothing();
+    return;
+  }
+
+  // Smoothing nos cents
+  const cents = smoothCents(note.cents);
+  let kind = Math.abs(cents) <= CENTS_PERFECT ? 'good' : (Math.abs(cents) <= CENTS_OK ? 'warn' : 'bad');
+  setTunerNeedle(cents, kind);
+  card.classList.remove('good','warn','bad');
+  card.classList.add(kind);
+
+  // Inicia hold no momento que entra na nota
+  if (state.matchStartTime === null) state.matchStartTime = performance.now();
+
+  // Decide ao final do hold
+  if (performance.now() - state.matchStartTime >= HOLD_MS) {
+    state.matchStartTime = null;
+    if (Math.abs(cents) <= CENTS_OK) onHit(Math.abs(cents) <= CENTS_PERFECT ? 'perfect' : 'ok');
+    else onMiss('detuned', cents);
+  }
+}
+
+// ============================================================
+// HIT / MISS
+// ============================================================
+function onHit(quality) {
+  // achievements: primeira nota
+  if (saveData.achievements.primeira === undefined) {
+    const a = unlock('primeira'); if (a) state.newAchievements.push(a);
+  }
+  // afinador pro
+  if (quality === 'perfect') {
+    state.perfectInRow++;
+    if (state.perfectInRow >= 5) {
+      const a = unlock('afinador'); if (a) state.newAchievements.push(a);
+    }
+  } else {
+    state.perfectInRow = 0;
+  }
+
+  state.hits++;
+  state.streak++;
+  if (state.streak > state.maxStreak) state.maxStreak = state.streak;
+  // combo (1, 2, 3, 4)
+  state.combo = Math.min(4, 1 + Math.floor(state.streak / 3));
+  if (state.combo >= 4) {
+    const a = unlock('combo'); if (a) state.newAchievements.push(a);
+  }
+  // velocista
+  state.hitTimestamps.push(performance.now());
+  state.hitTimestamps = state.hitTimestamps.filter(t => performance.now() - t < 30000);
+  if (state.hitTimestamps.length >= 10) {
+    const a = unlock('velocista'); if (a) state.newAchievements.push(a);
+  }
+
+  const base = quality === 'perfect' ? 20 : 10;
+  const points = base * state.combo;
+  state.score += points;
+  showFloatingPoints(`+${points}`, quality==='perfect' ? 'var(--gold)' : 'var(--cream)');
+  if (quality === 'perfect') sfxPerfect(); else sfxHit();
+
+  // partículas
+  const card = document.getElementById('target-card');
+  const r = card.getBoundingClientRect();
+  spawnParticles(r.left + r.width/2, r.top + r.height*0.4, quality==='perfect' ? 16 : 10);
+
+  card.classList.add('good');
+  setTimeout(() => card.classList.remove('good'), 350);
+
+  resetSmoothing();
+  renderHud();
+  advance();
+}
+
+function onMiss(reason) {
+  state.misses++;
+  state.streak = 0;
+  state.combo = 1;
+  state.lives--;
+  state.livesLost++;
+  state.perfectInRow = 0;
+  sfxMiss();
+  showX();
+  resetSmoothing();
+  renderHud();
+  if (state.lives <= 0) {
+    sfxOver();
+    setTimeout(() => phaseEnd('gameover'), 500);
+    return;
+  }
+  advance();
+}
+
+function advance() {
+  const it = state.current;
+  // Escalas avançam por sub-nota
+  if (it.type === 'scale') {
+    state.subStep++;
+    if (state.subStep >= it.escala.notas.length) {
+      // Escala completa = item completo
+      setTimeout(() => nextItem(), 600);
+    } else {
+      setTimeout(() => renderTarget(), 400);
+    }
+    return;
+  }
+  setTimeout(() => nextItem(), 500);
+}
+
+function nextItem() {
+  state.itemIndex++;
+  if (state.itemIndex >= state.items.length) {
+    return phaseEnd('complete');
+  }
+  state.current = state.items[state.itemIndex];
+  state.subStep = 0;
+  renderTarget();
+  renderHud();
+}
+
+// ============================================================
+// FIM DE FASE
+// ============================================================
+function formatTime(s) { const m=Math.floor(s/60); return `${m}:${(s%60).toString().padStart(2,'0')}`; }
+
+function phaseEnd(reason) {
+  state.elapsedSec = Math.floor((performance.now() - state.startTime)/1000);
+
+  // achievements de fim de fase
+  if (reason === 'complete') {
+    if (state.livesLost === 0) {
+      const a = unlock('semcair'); if (a) state.newAchievements.push(a);
+    }
+    if (state.phaseId === 5 && !state.staffOpenedThisPhase) {
+      const a = unlock('leitor'); if (a) state.newAchievements.push(a);
+    }
+    if (state.phaseId === 6) {
+      const a = unlock('ouvido'); if (a) state.newAchievements.push(a);
+    }
+    saveData.completed[state.phaseId] = true;
+    if (state.score > (saveData.bestScore[state.phaseId]||0)) saveData.bestScore[state.phaseId] = state.score;
+    if (saveData.bestTime[state.phaseId] === null || state.elapsedSec < saveData.bestTime[state.phaseId]) saveData.bestTime[state.phaseId] = state.elapsedSec;
+    // maestro?
+    if ([1,2,3,4,5,6].every(p => saveData.completed[p])) {
+      const a = unlock('maestro'); if (a) state.newAchievements.push(a);
+    }
+    persistSave();
+  }
+
+  // modal
+  const modal = document.getElementById('modal-win');
+  const emoji = document.getElementById('win-emoji');
+  const title = document.getElementById('win-title');
+  const text = document.getElementById('win-text');
+  document.getElementById('stat-time').textContent = formatTime(state.elapsedSec);
+  document.getElementById('stat-hits').textContent = `${state.hits}/${state.phase.total}`;
+  document.getElementById('stat-streak').textContent = state.maxStreak;
+  document.getElementById('stat-score').textContent = state.score;
+
+  if (reason === 'complete') {
+    emoji.textContent = '🎻';
+    title.textContent = 'FASE COMPLETA!';
+    text.textContent = `Acabou as ${state.phase.total} ${state.phase.type==='scale'?'escalas':state.phase.type==='interval'?'intervalos':'notas'} com ${state.lives} ♥ restantes.`;
+    sfxLevel();
+  } else {
+    emoji.textContent = '💀';
+    title.textContent = 'GAME OVER';
+    text.textContent = `Perdeu todas as vidas. Você completou ${state.itemIndex}/${state.phase.total}.`;
+  }
+
+  // achievements desbloqueados
+  const achBox = document.getElementById('new-achievements');
+  achBox.innerHTML = '';
+  if (state.newAchievements.length > 0) {
+    sfxAch();
+    state.newAchievements.forEach(a => {
+      const div = document.createElement('div');
+      div.className = 'achievement-banner';
+      div.innerHTML = `<div class="emoji">${a.emoji}</div>
+        <div class="info"><div class="name">CONQUISTA: ${a.name}</div><div class="desc">${a.desc}</div></div>`;
+      achBox.appendChild(div);
+    });
+  }
+  modal.classList.add('active');
+}
+
+// ============================================================
+// START PHASE
+// ============================================================
+function startPhase(id) {
+  state.phaseId = id;
+  state.phase = PHASES[id];
+  state.items = generateItems(state.phase);
+  state.itemIndex = 0;
+  state.current = state.items[0];
+  state.subStep = 0;
+  state.score = 0;
+  state.hits = 0;
+  state.misses = 0;
+  state.lives = 3;
+  state.livesLost = 0;
+  state.streak = 0;
+  state.maxStreak = 0;
+  state.combo = 1;
+  state.matchStartTime = null;
+  state.perfectInRow = 0;
+  state.hitTimestamps = [];
+  state.staffOpenedThisPhase = false;
+  state.newAchievements = [];
+  state.startTime = performance.now();
+  resetSmoothing();
+  showScreen('game');
+  renderTarget();
+  renderHud();
+}
+
+// ============================================================
+// NAVEGAÇÃO
+// ============================================================
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(`screen-${name}`).classList.add('active');
+}
+
+function renderPhasesGrid() {
+  const grid = document.getElementById('phases-grid');
+  grid.innerHTML = '';
+  [1,2,3,4,5,6].forEach(id => {
+    const p = PHASES[id];
+    const card = document.createElement('div');
+    card.className = 'phase-card';
+    if (saveData.completed[id]) card.classList.add('completed');
+    const best = saveData.bestScore[id] || 0;
+    const time = saveData.bestTime[id] ? formatTime(saveData.bestTime[id]) : '—';
+    card.innerHTML = `
+      <div class="phase-num">FASE ${id}</div>
+      <div class="phase-title">${p.name.toUpperCase()}</div>
+      <div class="phase-desc">${p.desc}</div>
+      <div class="phase-best">★ ${best} PTS · ⏱ ${time}</div>
+    `;
+    card.addEventListener('click', async () => {
+      const status = document.getElementById('mic-status');
+      status.textContent = 'PEDINDO MICROFONE...';
+      status.className = 'mic-status';
+      const ok = audioCtx ? true : await startMic();
+      if (!ok) {
+        status.textContent = 'MICROFONE NEGADO. LIBERE NAS PERMISSÕES.';
+        status.className = 'mic-status bad';
+        return;
+      }
+      status.textContent = 'MICROFONE OK';
+      status.className = 'mic-status ok';
+      startPhase(id);
+      if (!rafId) tick();
+    });
+    grid.appendChild(card);
+  });
+}
+
+function renderAchGrid() {
+  const grid = document.getElementById('ach-grid');
+  grid.innerHTML = '';
+  Object.entries(ACHIEVEMENTS).forEach(([key, a]) => {
+    const t = document.createElement('div');
+    t.className = 'ach-tile';
+    if (saveData.achievements[key]) t.classList.add('unlocked');
+    t.innerHTML = `<div class="emoji">${a.emoji}</div><div class="ach-name">${a.name.toUpperCase()}</div>`;
+    grid.appendChild(t);
+  });
+}
+
+// ============================================================
+// EVENTOS
+// ============================================================
+document.querySelectorAll('.a4-opt').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.a4-opt').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    A4_FREQ = parseInt(btn.dataset.a4, 10);
+  });
+});
+
+document.getElementById('btn-skip').addEventListener('click', () => {
+  state.streak = 0;
+  state.combo = 1;
+  resetSmoothing();
+  state.matchStartTime = null;
+  renderHud();
+  // escalas: pula a escala inteira
+  if (state.current && state.current.type === 'scale') {
+    state.subStep = state.current.escala.notas.length;
+  }
+  advance();
+});
+
+document.getElementById('btn-toggle-staff').addEventListener('click', () => {
+  const c = document.getElementById('staff-container');
+  c.classList.toggle('show');
+  if (c.classList.contains('show')) state.staffOpenedThisPhase = true;
+});
+
+document.getElementById('btn-play-ref').addEventListener('click', () => {
+  if (state.current && state.current.type === 'interval') playNote(state.current.base, 1.4);
+});
+document.getElementById('btn-play-ear').addEventListener('click', () => {
+  if (state.current && state.current.type === 'ear') playNote(state.current.midi, 1.4);
+});
+
+document.getElementById('btn-home').addEventListener('click', () => {
+  if (rafId) cancelAnimationFrame(rafId);
+  rafId = null;
+  renderPhasesGrid();
+  showScreen('home');
+});
+
+document.getElementById('btn-home-modal').addEventListener('click', () => {
+  document.getElementById('modal-win').classList.remove('active');
+  if (rafId) cancelAnimationFrame(rafId);
+  rafId = null;
+  renderPhasesGrid();
+  showScreen('home');
+});
+
+document.getElementById('btn-next-phase').addEventListener('click', () => {
+  document.getElementById('modal-win').classList.remove('active');
+  const next = state.phaseId < 6 ? state.phaseId + 1 : state.phaseId;
+  startPhase(next);
+});
+
+document.getElementById('btn-replay').addEventListener('click', () => {
+  document.getElementById('modal-win').classList.remove('active');
+  startPhase(state.phaseId);
+});
+
+document.getElementById('btn-show-achievements').addEventListener('click', () => {
+  renderAchGrid();
+  document.getElementById('modal-ach').classList.add('active');
+});
+document.getElementById('btn-close-ach').addEventListener('click', () => {
+  document.getElementById('modal-ach').classList.remove('active');
+});
+
+renderPhasesGrid();
+</script>
+</body>
+</html>
