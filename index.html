@@ -876,6 +876,40 @@
     .interval-display .ref-note { font-size: 42px; }
     .ear-display .icon { font-size: 80px; }
   }
+
+  /* ====================================================================
+     FEEDBACK DE DESAFINAÇÃO — direção (agudo/grave) + cents
+     ==================================================================== */
+  .detune-info {
+    position: absolute;
+    bottom: 22%;
+    left: 50%;
+    transform: translate(-50%, 0);
+    font-size: clamp(28px, 4.5vw, 48px);
+    color: var(--velvet);
+    text-shadow:
+      -3px 0 0 var(--border-dark), 3px 0 0 var(--border-dark),
+      0 -3px 0 var(--border-dark), 0 3px 0 var(--border-dark),
+      -3px -3px 0 var(--border-dark), 3px -3px 0 var(--border-dark),
+      -3px 3px 0 var(--border-dark), 3px 3px 0 var(--border-dark),
+      6px 6px 0 var(--gold);
+    opacity: 0;
+    letter-spacing: 5px;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 60;
+    font-weight: 700;
+  }
+  .detune-info.show {
+    animation: detune-pop 1.4s steps(14) forwards;
+  }
+  @keyframes detune-pop {
+    0%   { opacity: 0; transform: translate(-50%, 30px) scale(0.6); }
+    15%  { opacity: 1; transform: translate(-50%, 0) scale(1.15); }
+    25%  { opacity: 1; transform: translate(-50%, 0) scale(1); }
+    80%  { opacity: 1; transform: translate(-50%, 0) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -20px) scale(0.9); }
+  }
 </style>
 </head>
 <body>
@@ -988,6 +1022,7 @@
       </div>
 
       <div class="floating-x" id="floating-x">✕</div>
+      <div class="detune-info" id="detune-info"></div>
     </div>
 
     <div class="controls">
@@ -1313,6 +1348,21 @@ function showX() {
   void x.offsetWidth; // reset animation
   x.classList.add('show');
   setTimeout(() => x.classList.remove('show'), 800);
+}
+
+function showDetuneInfo(cents) {
+  const el = document.getElementById('detune-info');
+  if (!el) return;
+  const c = Math.round(Math.abs(cents));
+  if (cents > 0) {
+    el.textContent = `AGUDO  ▼  ${c}¢`;
+  } else {
+    el.textContent = `GRAVE  ▲  ${c}¢`;
+  }
+  el.classList.remove('show');
+  void el.offsetWidth;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 1400);
 }
 
 // ============================================================
@@ -1707,7 +1757,7 @@ function onHit(quality) {
   advance();
 }
 
-function onMiss(reason) {
+function onMiss(reason, cents) {
   state.misses++;
   state.streak = 0;
   state.combo = 1;
@@ -1716,30 +1766,38 @@ function onMiss(reason) {
   state.perfectInRow = 0;
   sfxMiss();
   showX();
+
+  // Feedback de direção quando errou por desafinação
+  let extraDelay = 0;
+  if (reason === 'detuned' && typeof cents === 'number') {
+    showDetuneInfo(cents);
+    extraDelay = 1100;
+  }
+
   resetSmoothing();
   renderHud();
   if (state.lives <= 0) {
     sfxOver();
-    setTimeout(() => phaseEnd('gameover'), 500);
+    setTimeout(() => phaseEnd('gameover'), 500 + extraDelay);
     return;
   }
-  advance();
+  advance(extraDelay);
 }
 
-function advance() {
+function advance(extraDelay = 0) {
   const it = state.current;
   // Escalas avançam por sub-nota
   if (it.type === 'scale') {
     state.subStep++;
     if (state.subStep >= it.escala.notas.length) {
       // Escala completa = item completo
-      setTimeout(() => nextItem(), 600);
+      setTimeout(() => nextItem(), 600 + extraDelay);
     } else {
-      setTimeout(() => renderTarget(), 400);
+      setTimeout(() => renderTarget(), 400 + extraDelay);
     }
     return;
   }
-  setTimeout(() => nextItem(), 500);
+  setTimeout(() => nextItem(), 500 + extraDelay);
 }
 
 function nextItem() {
