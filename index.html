@@ -754,6 +754,128 @@
   .a4-selector { background: var(--bg-1); }
   .phase-best { border-top-color: var(--bg-3); }
   .tagline { color: var(--cream); }
+
+  /* ====================================================================
+     SIZE OVERRIDES — escala ~2x para legibilidade
+     ==================================================================== */
+  html, body { overflow-y: auto; overflow-x: hidden; }
+  #app {
+    height: auto;
+    min-height: 100vh;
+    max-width: 1240px;
+    padding: 28px;
+  }
+  .home { gap: 24px; padding-top: 20px; }
+
+  .logo {
+    font-size: clamp(48px, 10vw, 88px);
+    letter-spacing: 6px;
+    padding: 14px;
+    text-shadow:
+      -4px 0 0 var(--border-dark), 4px 0 0 var(--border-dark),
+      0 -4px 0 var(--border-dark), 0 4px 0 var(--border-dark),
+      -4px -4px 0 var(--border-dark), 4px -4px 0 var(--border-dark),
+      -4px 4px 0 var(--border-dark), 4px 4px 0 var(--border-dark),
+      9px 9px 0 var(--velvet),
+      18px 18px 0 var(--blue);
+  }
+  .subtitle { font-size: 22px; letter-spacing: 3px; margin-top: 8px; }
+
+  .phases { gap: 18px; max-width: 1100px; }
+  .phase-card { padding: 22px; border-width: 4px; }
+  .phase-num { font-size: 15px; letter-spacing: 3px; }
+  .phase-title { font-size: 22px; margin: 12px 0 14px; line-height: 1.4; }
+  .phase-desc { font-size: 14px; line-height: 1.8; }
+  .phase-best { font-size: 14px; padding-top: 12px; margin-top: 14px; }
+  .phase-card.completed::after { font-size: 32px; top: 12px; right: 14px; }
+
+  .a4-selector { padding: 14px 18px; border-width: 4px; }
+  .a4-selector label { font-size: 15px; }
+  .a4-opt { font-size: 15px; padding: 10px 16px; border-width: 3px; }
+
+  .pixel-btn {
+    font-size: 17px;
+    padding: 18px 26px;
+    letter-spacing: 1.5px;
+    border-width: 4px;
+  }
+  .mic-status { font-size: 15px; line-height: 1.7; max-width: 800px; }
+
+  .hud { padding: 16px 22px; gap: 14px; border-width: 4px; }
+  .hud-item { min-width: 90px; }
+  .hud-label { font-size: 13px; letter-spacing: 2px; }
+  .hud-value { font-size: 28px; margin-top: 6px; }
+  .hud-value.lives { font-size: 32px; }
+  .hud-value.combo { font-size: 28px; }
+
+  .target-card { padding: 28px; border-width: 4px; }
+  .prompt-label { font-size: 18px; letter-spacing: 4px; margin-bottom: 22px; }
+  .note-display {
+    font-size: clamp(96px, 20vw, 168px);
+    letter-spacing: 8px;
+  }
+  .note-octave { font-size: 26px; letter-spacing: 3px; margin-top: 22px; }
+  .note-enharmonic { font-size: 17px; margin-top: 10px; }
+
+  .interval-display .ref { font-size: 24px; margin-bottom: 18px; letter-spacing: 2px; }
+  .interval-display .ref-note { font-size: 60px; margin-bottom: 22px; }
+  .interval-display .arrow { font-size: 34px; margin-bottom: 14px; }
+  .interval-display .interval-name { font-size: 30px; margin-bottom: 8px; letter-spacing: 2px; }
+
+  .scale-display .scale-name { font-size: 30px; margin-bottom: 18px; letter-spacing: 3px; }
+  .scale-progress { gap: 10px; margin: 16px 0; }
+  .scale-note-tile { font-size: 18px; padding: 14px 16px; min-width: 64px; border-width: 3px; }
+  .scale-current-note { font-size: 60px; margin: 16px 0; }
+
+  .ear-display .icon { font-size: 110px; margin-bottom: 18px; }
+  .ear-display .hint { font-size: 20px; letter-spacing: 2px; }
+
+  .tuner { max-width: 760px; margin-top: 24px; }
+  .tuner-bar { height: 64px; border-width: 4px; }
+  .tuner-needle { width: 10px; }
+  .tuner-info { font-size: 13px; margin-top: 12px; }
+  .detected { font-size: 15px; margin-top: 14px; }
+
+  .floating-x { font-size: 220px; }
+  .floating-points { font-size: 28px; }
+
+  .modal-card { padding: 36px; max-width: 700px; border-width: 6px; }
+  .modal-emoji { font-size: 88px; margin-bottom: 14px; }
+  .modal-title { font-size: 28px; line-height: 1.4; margin-bottom: 16px; letter-spacing: 3px; }
+  .modal-text { font-size: 16px; line-height: 1.8; margin-bottom: 22px; }
+  .modal-stats { padding: 18px; gap: 12px; }
+  .stat-label { font-size: 13px; letter-spacing: 2px; }
+  .stat-value { font-size: 26px; margin-top: 6px; }
+
+  .achievement-banner { padding: 14px 18px; font-size: 15px; gap: 14px; }
+  .achievement-banner .emoji { font-size: 36px; }
+  .achievement-banner .name { font-size: 15px; }
+  .achievement-banner .desc { font-size: 12px; margin-top: 6px; }
+
+  .ach-grid { gap: 12px; max-width: 880px; }
+  .ach-tile { padding: 14px 8px; border-width: 3px; }
+  .ach-tile .emoji { font-size: 44px; }
+  .ach-tile .ach-name { font-size: 11px; margin-top: 8px; line-height: 1.4; letter-spacing: 1px; }
+
+  /* SVG da partitura — escalar 1.5x */
+  .staff-container { padding: 18px; border-width: 4px; }
+  .staff-container svg { width: 100%; max-width: 900px; height: auto; }
+
+  @media (max-width: 700px) {
+    #app { padding: 16px; }
+    .logo { font-size: clamp(36px, 9vw, 56px); letter-spacing: 3px; }
+    .hud { padding: 12px 14px; gap: 8px; }
+    .hud-value { font-size: 20px; }
+    .hud-value.lives { font-size: 24px; }
+    .hud-item { min-width: 60px; }
+    .pixel-btn { font-size: 14px; padding: 14px 18px; }
+    .modal-card { padding: 24px; }
+    .modal-title { font-size: 22px; }
+    .note-display { font-size: clamp(70px, 16vw, 100px); }
+    .scale-current-note { font-size: 44px; }
+    .interval-display .ref-note { font-size: 42px; }
+    .ear-display .icon { font-size: 80px; }
+  }
 </style>
 </head>
 <body>
@@ -765,8 +887,6 @@
       <div class="logo">CELLO GAMES</div>
       <div class="subtitle">16-BIT MUSIC ARCADE</div>
     </div>
-
-    <p class="tagline">Aparece a nota, voce toca, o afinador valida em tempo real. 6 fases, 3 vidas por fase, combo multiplicador.</p>
 
     <div class="phases" id="phases-grid"></div>
 
