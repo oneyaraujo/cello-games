@@ -1788,14 +1788,17 @@ const ONSET_RATIO = 1.4;              // RMS atual deve ser N× maior que histó
 const ONSET_MIN_RMS = 0.025;          // RMS mínimo absoluto pra contar como onset
 const SILENCE_RESET_MS = 140;         // tempo de silêncio pra liberar nova detecção
 const COOLDOWN_AFTER_CONFIRM_MS = 40; // anti-double-confirm
-const LEGATO_CHANGE_FRAMES = 3;       // frames seguidos com nota diferente = nova nota
+const LEGATO_CHANGE_FRAMES = 5;       // frames seguidos c/ nota diferente p/ aceitar troca
+const LEGATO_CENTS_TOLERANCE = 25;    // cents máx pra nova nota ser considerada "intencional"
+const LEGATO_ONSET_WINDOW_MS = 400;   // onset deve ter ocorrido nos últimos N ms
 
 const analyzeState = {
   active: false,
   notes: [],             // [{midi, name, octave, cents}]
-  detection: null,       // { holdStart, midiBuf, centsBuf, votedMidi, confirmed }
+  detection: null,       // { holdStart, midiBuf, centsBuf, votedMidi, confirmed, newMidiCount }
   rmsHistory: [],
   lastSoundTime: 0,
+  lastOnsetTime: 0,      // pra validar legato change com onset recente
   cooldownUntil: 0,
 };
 
@@ -1847,6 +1850,7 @@ function startAnalyzeSession() {
   analyzeState.detection = null;
   analyzeState.rmsHistory = [];
   analyzeState.lastSoundTime = 0;
+  analyzeState.lastOnsetTime = 0;
   analyzeState.cooldownUntil = 0;
   document.getElementById('analyze-status').textContent = '🔴 GRAVANDO...';
   document.getElementById('analyze-count').textContent = '0';
@@ -1883,6 +1887,7 @@ function analyzeTick(freq, note, rms) {
 
   // Onset detection: detectou novo ataque enquanto a detecção anterior já tinha confirmado
   const onset = detectOnset(rms);
+  if (onset) analyzeState.lastOnsetTime = now;
   if (onset && analyzeState.detection && analyzeState.detection.confirmed) {
     analyzeState.detection = null;
   }
@@ -1910,12 +1915,29 @@ function analyzeTick(freq, note, rms) {
 
   if (det.confirmed) {
     // Já confirmou — aguarda silêncio/onset, OU detecta nova nota em legato
-    // Se 3 frames seguidos detectarem nota diferente, reset (resolve escalas conectadas)
+    // Para aceitar legato change, exige:
+    //   (a) MIDI diferente do confirmado
+    //   (b) novos cents bem afinados (descarta oscilação no meio de 2 notas)
+    //   (c) 5 frames seguidos consistentes
+    //   (d) onset recente OU salto >= 2 semitons (descarta vibrato adjacente)
     if (note.midi !== det.votedMidi) {
-      det.newMidiCount = (det.newMidiCount || 0) + 1;
-      if (det.newMidiCount >= LEGATO_CHANGE_FRAMES) {
-        analyzeState.detection = null;
-        return; // próximo frame inicia nova detecção
+      const wellTuned = Math.abs(note.cents) <= LEGATO_CENTS_TOLERANCE;
+      const bigJump = Math.abs(note.midi - det.votedMidi) >= 2;
+      if (wellTuned || bigJump) {
+        det.newMidiCount = (det.newMidiCount || 0) + 1;
+        if (det.newMidiCount >= LEGATO_CHANGE_FRAMES) {
+          const recentOnset = (now - analyzeState.lastOnsetTime) < LEGATO_ONSET_WINDOW_MS;
+          if (recentOnset || bigJump) {
+            analyzeState.detection = null;
+            return; // próximo frame inicia nova detecção
+          } else {
+            // sem onset recente E mudança pequena = provavelmente oscilação, descarta
+            det.newMidiCount = 0;
+          }
+        }
+      } else {
+        // cents fora do tolerável = pitch no meio do caminho, ignora
+        det.newMidiCount = 0;
       }
     } else {
       det.newMidiCount = 0;
