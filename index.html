@@ -878,6 +878,229 @@
   }
 
   /* ====================================================================
+     STRING HINT — corda e posição sugerida abaixo da nota
+     ==================================================================== */
+  .string-hint {
+    margin-top: 16px;
+    font-size: 14px;
+    color: var(--blue);
+    letter-spacing: 1.5px;
+    text-shadow:
+      -1px -1px 0 var(--border-dark),
+      1px -1px 0 var(--border-dark),
+      -1px 1px 0 var(--border-dark),
+      1px 1px 0 var(--border-dark);
+  }
+
+  /* ====================================================================
+     MAPA DE CALOR — notas erradas no modal final
+     ==================================================================== */
+  .missed-notes-section {
+    margin: 14px 0 18px;
+    padding: 14px;
+    background: var(--bg-2);
+    border: 3px solid var(--velvet);
+    text-align: left;
+  }
+  .missed-title {
+    font-size: 12px;
+    color: var(--velvet);
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+    text-shadow:
+      -1px -1px 0 var(--border-dark),
+      1px -1px 0 var(--border-dark),
+      -1px 1px 0 var(--border-dark),
+      1px 1px 0 var(--border-dark);
+  }
+  .missed-list { display: flex; flex-wrap: wrap; gap: 8px; }
+  .missed-item {
+    padding: 8px 12px;
+    background: var(--bg-1);
+    border: 2px solid var(--border-dark);
+    font-size: 13px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .missed-item.high { background: var(--velvet); color: var(--bg-1); }
+  .missed-item.med  { background: var(--gold);  color: var(--cream); }
+  .missed-item.low  { background: var(--bg-1);  color: var(--cream); }
+  .missed-item .mn-count { font-weight: 700; }
+
+  /* ====================================================================
+     MODO ANÁLISE
+     ==================================================================== */
+  .free-mode-card {
+    width: 100%;
+    max-width: 1100px;
+    background: var(--bg-1);
+    border: 4px solid var(--blue);
+    box-shadow: 0 6px 0 var(--border-dark);
+    padding: 20px 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    text-align: left;
+    margin-top: 4px;
+  }
+  .free-mode-card:hover {
+    background: var(--blue);
+    transform: translate(-2px, -2px);
+    box-shadow: 8px 8px 0 var(--border-dark);
+  }
+  .free-mode-card:hover .free-mode-title { color: var(--bg-1); }
+  .free-mode-card:hover .free-mode-desc { color: var(--bg-1); }
+  .free-mode-icon { font-size: 52px; flex-shrink: 0; }
+  .free-mode-title {
+    color: var(--blue);
+    font-size: 18px;
+    letter-spacing: 3px;
+    margin-bottom: 6px;
+    text-shadow:
+      -1px -1px 0 var(--border-dark),
+      1px -1px 0 var(--border-dark),
+      -1px 1px 0 var(--border-dark),
+      1px 1px 0 var(--border-dark);
+  }
+  .free-mode-desc { font-size: 13px; line-height: 1.6; color: var(--cream); }
+
+  .analyze {
+    gap: 14px;
+    overflow-y: auto;
+  }
+  .analyze-hud {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 22px;
+    background: var(--bg-1);
+    border: 4px solid var(--cream);
+    box-shadow: 0 4px 0 var(--border-dark);
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .analyze-status {
+    font-size: 16px;
+    color: var(--velvet);
+    letter-spacing: 2px;
+    text-shadow:
+      -1px -1px 0 var(--border-dark),
+      1px -1px 0 var(--border-dark),
+      -1px 1px 0 var(--border-dark),
+      1px 1px 0 var(--border-dark);
+  }
+  .analyze-counter { font-size: 16px; color: var(--cream); letter-spacing: 1.5px; }
+  .analyze-counter strong { color: var(--gold); font-size: 22px; margin-left: 6px; }
+
+  .analyze-card {
+    flex: 1;
+    background: var(--bg-1);
+    border: 4px solid var(--cream);
+    box-shadow: 0 6px 0 var(--border-dark);
+    padding: 24px;
+    overflow-y: auto;
+  }
+  .analyze-current {
+    text-align: center;
+    font-size: clamp(60px, 12vw, 110px);
+    color: var(--velvet);
+    margin: 18px 0 6px;
+    text-shadow:
+      -2px 0 0 var(--border-dark), 2px 0 0 var(--border-dark),
+      0 -2px 0 var(--border-dark), 0 2px 0 var(--border-dark),
+      -2px -2px 0 var(--border-dark), 2px -2px 0 var(--border-dark),
+      -2px 2px 0 var(--border-dark), 2px 2px 0 var(--border-dark),
+      4px 4px 0 var(--gold);
+    letter-spacing: 5px;
+  }
+  .analyze-cents-live {
+    text-align: center;
+    font-size: 22px;
+    color: var(--gold);
+    min-height: 32px;
+    margin-bottom: 14px;
+    text-shadow:
+      -1px -1px 0 var(--border-dark),
+      1px -1px 0 var(--border-dark),
+      -1px 1px 0 var(--border-dark),
+      1px 1px 0 var(--border-dark);
+  }
+  .analyze-hint {
+    text-align: center;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.7;
+    margin-top: 14px;
+  }
+
+  .analyze-summary { margin-bottom: 22px; }
+  .analyze-summary-line {
+    font-size: 18px;
+    color: var(--cream);
+    letter-spacing: 1.5px;
+    margin-bottom: 12px;
+    text-align: center;
+  }
+  .analyze-summary-stats {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .ass {
+    padding: 8px 12px;
+    font-size: 12px;
+    border: 3px solid var(--border-dark);
+    letter-spacing: 1px;
+  }
+  .ass.good { background: var(--good); color: var(--bg-1); }
+  .ass.warn { background: var(--warn); color: var(--cream); }
+  .ass.bad  { background: var(--bad);  color: var(--bg-1); }
+  .analyze-empty {
+    padding: 30px;
+    text-align: center;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .analyze-graph-wrap { margin: 16px 0 8px; }
+  .analyze-graph-title {
+    font-size: 14px;
+    color: var(--gold);
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+    text-shadow:
+      -1px -1px 0 var(--border-dark),
+      1px -1px 0 var(--border-dark),
+      -1px 1px 0 var(--border-dark),
+      1px 1px 0 var(--border-dark);
+  }
+  .analyze-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 6px;
+    margin-top: 10px;
+  }
+  .analyze-item {
+    display: grid;
+    grid-template-columns: 26px 24px 1fr auto;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border: 2px solid var(--border-dark);
+    background: var(--bg-1);
+    font-size: 13px;
+  }
+  .analyze-item.good { background: var(--good); color: var(--bg-1); }
+  .analyze-item.warn { background: var(--warn); color: var(--cream); }
+  .analyze-item.bad  { background: var(--bad);  color: var(--bg-1); }
+  .analyze-item .ai-num { font-size: 11px; opacity: 0.85; }
+  .analyze-item .ai-icon { font-size: 16px; font-weight: 700; }
+  .analyze-item .ai-note { font-weight: 700; }
+  .analyze-item .ai-cents { font-size: 11px; }
+
+  /* ====================================================================
      FEEDBACK DE DESAFINAÇÃO — direção (agudo/grave) + cents
      ==================================================================== */
   .detune-info {
@@ -923,6 +1146,14 @@
     </div>
 
     <div class="phases" id="phases-grid"></div>
+
+    <div class="free-mode-card" id="btn-free-mode">
+      <div class="free-mode-icon">🎙</div>
+      <div class="free-mode-info">
+        <div class="free-mode-title">MODO ANÁLISE</div>
+        <div class="free-mode-desc">Toque um trecho. No fim, veja a análise nota por nota com gráfico de afinação.</div>
+      </div>
+    </div>
 
     <div class="home-controls">
       <div class="a4-selector">
@@ -972,6 +1203,7 @@
         <div class="note-display" id="note-display">LA</div>
         <div class="note-octave" id="note-octave"></div>
         <div class="note-enharmonic" id="note-enharmonic"></div>
+        <div class="string-hint" id="string-hint"></div>
       </div>
 
       <!-- Display de intervalo (fase 4) -->
@@ -1032,6 +1264,39 @@
     </div>
   </section>
 
+  <!-- Tela do Modo Análise -->
+  <section id="screen-analyze" class="screen analyze">
+    <div class="analyze-hud">
+      <div class="analyze-status" id="analyze-status">PRONTO PARA GRAVAR</div>
+      <div class="analyze-counter">Notas: <strong id="analyze-count">0</strong></div>
+    </div>
+
+    <div class="analyze-card" id="analyze-card">
+      <div id="analyze-live">
+        <div class="prompt-label">DETECTANDO</div>
+        <div class="analyze-current" id="analyze-current">—</div>
+        <div class="analyze-cents-live" id="analyze-cents-live"></div>
+        <div class="analyze-hint">Toque uma nota por vez. O app registra cada nota que você segurar por ~400ms.</div>
+      </div>
+
+      <div id="analyze-results" style="display:none;">
+        <div class="analyze-summary" id="analyze-summary"></div>
+        <div class="analyze-graph-wrap">
+          <div class="analyze-graph-title">📈 GRÁFICO DE AFINAÇÃO</div>
+          <div id="analyze-graph"></div>
+        </div>
+        <div class="analyze-graph-title" style="margin-top:18px;">📋 NOTA POR NOTA</div>
+        <div class="analyze-list" id="analyze-list"></div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="pixel-btn primary" id="btn-analyze-toggle">🎙 INICIAR GRAVAÇÃO</button>
+      <button class="pixel-btn" id="btn-analyze-clear" style="display:none;">🔄 NOVA ANÁLISE</button>
+      <button class="pixel-btn" id="btn-analyze-home">◀ MENU</button>
+    </div>
+  </section>
+
   <!-- Modal fim de fase -->
   <div class="modal" id="modal-win">
     <div class="modal-card">
@@ -1056,6 +1321,7 @@
           <span class="stat-value gold" id="stat-score">—</span>
         </div>
       </div>
+      <div id="missed-notes-section" class="missed-notes-section" style="display:none;"></div>
       <div id="new-achievements"></div>
       <div class="controls" style="margin-top: 12px;">
         <button class="pixel-btn primary" id="btn-next-phase">PRÓXIMA FASE</button>
@@ -1100,6 +1366,32 @@ function midiToNote(midi) {
   return { name: NOTAS_LATINO[idx], idx, octave: Math.floor(r / 12) - 1, cents, midi: r };
 }
 function midiToName(midi) { const n = midiToNote(midi); return `${n.name} ${n.octave}`; }
+
+// Sugere corda e posição da mão esquerda do cello pra uma nota MIDI
+// Cordas: Dó2=36, Sol2=43, Ré3=50, Lá3=57
+function getStringPosition(midi) {
+  const cordas = [
+    { nome: 'Lá',  base: 57 },
+    { nome: 'Ré',  base: 50 },
+    { nome: 'Sol', base: 43 },
+    { nome: 'Dó',  base: 36 },
+  ];
+  for (const c of cordas) {
+    if (midi >= c.base) {
+      const semis = midi - c.base;
+      let pos;
+      if (semis === 0) pos = 'corda solta';
+      else if (semis <= 4) pos = '1ª posição';
+      else if (semis === 5) pos = '2ª posição';
+      else if (semis <= 7) pos = '3ª posição';
+      else if (semis <= 9) pos = '4ª posição';
+      else if (semis <= 12) pos = 'meia posição alta';
+      else pos = 'posição aguda';
+      return { corda: c.nome, posicao: pos };
+    }
+  }
+  return null;
+}
 
 // ============================================================
 // FASES
@@ -1399,7 +1691,206 @@ const state = {
   livesLost: 0,
   staffOpenedThisPhase: false,
   newAchievements: [],
+  // mapa de calor — quais notas errou e quantas vezes
+  missedNotes: {},
 };
+
+// ============================================================
+// MODO ANÁLISE — captura trecho e devolve análise por nota
+// ============================================================
+const analyzeState = {
+  active: false,
+  notes: [],            // [{midi, name, octave, cents}]
+  currentDetect: null,  // {midi, centsBuf, startTime, confirmed}
+  lastConfirmedMidi: null,
+};
+
+const ANALYZE_HOLD_MS = 400;
+const ANALYZE_CENTS_PERFECT = 10;
+const ANALYZE_CENTS_OK = 25;
+
+function startAnalyzeSession() {
+  analyzeState.active = true;
+  analyzeState.notes = [];
+  analyzeState.currentDetect = null;
+  analyzeState.lastConfirmedMidi = null;
+  document.getElementById('analyze-status').textContent = '🔴 GRAVANDO...';
+  document.getElementById('analyze-count').textContent = '0';
+  document.getElementById('analyze-current').textContent = '—';
+  document.getElementById('analyze-cents-live').textContent = '';
+  document.getElementById('btn-analyze-toggle').textContent = '⏹ PARAR';
+  document.getElementById('btn-analyze-clear').style.display = 'none';
+  document.getElementById('analyze-live').style.display = 'block';
+  document.getElementById('analyze-results').style.display = 'none';
+}
+
+function stopAnalyzeSession() {
+  analyzeState.active = false;
+  document.getElementById('analyze-status').textContent = '✅ ANÁLISE COMPLETA';
+  document.getElementById('btn-analyze-toggle').textContent = '🎙 NOVA GRAVAÇÃO';
+  document.getElementById('btn-analyze-clear').style.display = 'inline-block';
+  renderAnalyzeResults();
+}
+
+function analyzeTick(freq, note) {
+  if (freq < 0) {
+    // silêncio — descarta detecção em andamento se não confirmou
+    if (analyzeState.currentDetect && !analyzeState.currentDetect.confirmed) {
+      analyzeState.currentDetect = null;
+    } else if (analyzeState.currentDetect && analyzeState.currentDetect.confirmed) {
+      analyzeState.currentDetect = null;
+      analyzeState.lastConfirmedMidi = null;
+    }
+    return;
+  }
+
+  const cd = analyzeState.currentDetect;
+
+  if (!cd || cd.midi !== note.midi) {
+    // nova detecção (entrou numa nota diferente)
+    analyzeState.currentDetect = {
+      midi: note.midi,
+      centsBuf: [note.cents],
+      startTime: performance.now(),
+      confirmed: false,
+    };
+    return;
+  }
+
+  // mesma nota — acumula
+  cd.centsBuf.push(note.cents);
+
+  if (!cd.confirmed && performance.now() - cd.startTime >= ANALYZE_HOLD_MS) {
+    // confirmou — registra
+    cd.confirmed = true;
+    const avgCents = cd.centsBuf.reduce((a,b)=>a+b,0) / cd.centsBuf.length;
+    const n = midiToNote(cd.midi);
+    analyzeState.notes.push({
+      midi: cd.midi,
+      name: n.name,
+      octave: n.octave,
+      cents: avgCents,
+    });
+    analyzeState.lastConfirmedMidi = cd.midi;
+    document.getElementById('analyze-current').textContent = `${n.name.toUpperCase().replace('#','♯')} ${n.octave}`;
+    document.getElementById('analyze-cents-live').textContent = `${avgCents >= 0 ? '+' : ''}${avgCents.toFixed(1)}¢`;
+    document.getElementById('analyze-count').textContent = analyzeState.notes.length;
+    sfxHit();
+  }
+}
+
+function renderAnalyzeResults() {
+  document.getElementById('analyze-live').style.display = 'none';
+  document.getElementById('analyze-results').style.display = 'block';
+
+  const list = analyzeState.notes;
+  if (list.length === 0) {
+    document.getElementById('analyze-summary').innerHTML = '<div class="analyze-empty">Nenhuma nota foi captada. Tente novamente tocando notas sustentadas.</div>';
+    document.getElementById('analyze-graph').innerHTML = '';
+    document.getElementById('analyze-list').innerHTML = '';
+    return;
+  }
+
+  const perfeitas = list.filter(n => Math.abs(n.cents) <= ANALYZE_CENTS_PERFECT).length;
+  const ok       = list.filter(n => Math.abs(n.cents) > ANALYZE_CENTS_PERFECT && Math.abs(n.cents) <= ANALYZE_CENTS_OK).length;
+  const fora     = list.filter(n => Math.abs(n.cents) > ANALYZE_CENTS_OK).length;
+  const pct = Math.round((perfeitas + ok) / list.length * 100);
+
+  document.getElementById('analyze-summary').innerHTML = `
+    <div class="analyze-summary-line">${list.length} notas detectadas · ${pct}% afinadas</div>
+    <div class="analyze-summary-stats">
+      <span class="ass good">✓ ${perfeitas} perfeitas</span>
+      <span class="ass warn">~ ${ok} aceitáveis</span>
+      <span class="ass bad">✕ ${fora} desafinadas</span>
+    </div>
+  `;
+
+  // === Gráfico SVG de afinação ===
+  document.getElementById('analyze-graph').innerHTML = renderAnalyzeGraph(list);
+
+  // === Lista nota por nota ===
+  let html = '';
+  list.forEach((n, i) => {
+    const c = Math.round(n.cents);
+    let cls = 'good', icon = '✓', dir = '';
+    if (Math.abs(n.cents) > ANALYZE_CENTS_OK) {
+      cls = 'bad'; icon = '✕';
+      dir = c > 0 ? `agudo ${Math.abs(c)}¢ ▼` : `grave ${Math.abs(c)}¢ ▲`;
+    } else if (Math.abs(n.cents) > ANALYZE_CENTS_PERFECT) {
+      cls = 'warn'; icon = '~';
+      dir = c > 0 ? `+${c}¢` : `${c}¢`;
+    } else {
+      dir = `${c >= 0 ? '+' : ''}${c}¢`;
+    }
+    const noteName = n.name.replace('#','♯');
+    html += `<div class="analyze-item ${cls}">
+      <span class="ai-num">${i+1}</span>
+      <span class="ai-icon">${icon}</span>
+      <span class="ai-note">${noteName} ${n.octave}</span>
+      <span class="ai-cents">${dir}</span>
+    </div>`;
+  });
+  document.getElementById('analyze-list').innerHTML = html;
+}
+
+function renderAnalyzeGraph(notes) {
+  const W = 880, H = 220;
+  const padX = 50, padY = 30;
+  const innerW = W - padX*2;
+  const innerH = H - padY*2;
+  const maxCents = 50;
+  // cada nota = um ponto no eixo X
+  const xStep = notes.length > 1 ? innerW / (notes.length - 1) : 0;
+  // y: cents 0 no meio, -50 embaixo, +50 em cima
+  const yFromCents = c => padY + innerH/2 - (Math.max(-maxCents, Math.min(maxCents, c)) / maxCents) * (innerH/2);
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" style="background:#fff; border:3px solid var(--border-dark); display:block;">`;
+
+  // zonas: ±10 verde, ±25 amarelo
+  const yPerf = yFromCents(ANALYZE_CENTS_PERFECT);
+  const yPerfN = yFromCents(-ANALYZE_CENTS_PERFECT);
+  const yOk = yFromCents(ANALYZE_CENTS_OK);
+  const yOkN = yFromCents(-ANALYZE_CENTS_OK);
+  svg += `<rect x="${padX}" y="${yPerf}" width="${innerW}" height="${yPerfN - yPerf}" fill="rgba(6,184,112,0.18)"/>`;
+  svg += `<rect x="${padX}" y="${yOk}" width="${innerW}" height="${yPerf - yOk}" fill="rgba(255,166,0,0.13)"/>`;
+  svg += `<rect x="${padX}" y="${yPerfN}" width="${innerW}" height="${yOkN - yPerfN}" fill="rgba(255,166,0,0.13)"/>`;
+  // linha do zero
+  const yZero = yFromCents(0);
+  svg += `<line x1="${padX}" y1="${yZero}" x2="${W - padX}" y2="${yZero}" stroke="#1a1a2e" stroke-width="2" stroke-dasharray="5,4"/>`;
+  // labels Y
+  [50, 25, 10, 0, -10, -25, -50].forEach(c => {
+    const y = yFromCents(c);
+    svg += `<text x="${padX - 6}" y="${y + 4}" text-anchor="end" font-family="monospace" font-size="11" fill="#1a1a2e">${c > 0 ? '+'+c : c}¢</text>`;
+  });
+
+  // linha conectando os pontos
+  if (notes.length > 1) {
+    let path = '';
+    notes.forEach((n, i) => {
+      const x = padX + i * xStep;
+      const y = yFromCents(n.cents);
+      path += (i === 0 ? 'M' : 'L') + ` ${x} ${y} `;
+    });
+    svg += `<path d="${path}" stroke="#1d9bf0" stroke-width="3" fill="none"/>`;
+  }
+
+  // pontos coloridos
+  notes.forEach((n, i) => {
+    const x = padX + (notes.length > 1 ? i * xStep : innerW/2);
+    const y = yFromCents(n.cents);
+    let color = '#06b870';
+    if (Math.abs(n.cents) > ANALYZE_CENTS_OK) color = '#e63946';
+    else if (Math.abs(n.cents) > ANALYZE_CENTS_PERFECT) color = '#ffa600';
+    svg += `<circle cx="${x}" cy="${y}" r="7" fill="${color}" stroke="#1a1a2e" stroke-width="2"/>`;
+    // label da nota embaixo
+    if (notes.length <= 30) {
+      svg += `<text x="${x}" y="${H - 8}" text-anchor="middle" font-family="monospace" font-size="10" fill="#1a1a2e">${n.name.replace('#','♯')}${n.octave}</text>`;
+    }
+  });
+
+  svg += `</svg>`;
+  return svg;
+}
 
 function generateItems(phase) {
   const items = [];
@@ -1472,6 +1963,10 @@ function renderTarget() {
   document.getElementById('btn-toggle-staff').style.display = (it.type==='scale') ? 'inline-block' : 'none';
   document.getElementById('staff-container').classList.remove('show');
 
+  // limpa string-hint por padrão (só usado em type=note)
+  const _sh = document.getElementById('string-hint');
+  if (_sh) _sh.textContent = '';
+
   if (it.type === 'note') {
     showDisplay('note');
     promptLabel.textContent = 'TOQUE ESTA NOTA';
@@ -1483,6 +1978,9 @@ function renderTarget() {
     if (enh) extra = `também: ${enh}`;
     if (!it.requireOctave) extra = (extra ? extra + ' · ' : '') + 'outras oitavas também valem';
     document.getElementById('note-enharmonic').textContent = extra;
+    // sugestão de corda e posição
+    const sp = getStringPosition(it.midi);
+    if (sp && _sh) _sh.textContent = `🎻 corda ${sp.corda} · ${sp.posicao}`;
   }
   else if (it.type === 'interval') {
     showDisplay('interval');
@@ -1663,7 +2161,16 @@ function tick() {
   if (!analyser || !buffer) return;
   analyser.getFloatTimeDomainData(buffer);
   const freq = yin(buffer, audioCtx.sampleRate);
+  const note = freq > 0 ? midiToNote(freqToMidi(freq)) : null;
+
+  // Modo Análise tem prioridade
+  if (analyzeState.active) {
+    analyzeTick(freq, note);
+    return;
+  }
+
   const card = document.getElementById('target-card');
+  if (!card || !state.current) return;
 
   if (freq < 0) {
     updateDetected(-1);
@@ -1674,7 +2181,6 @@ function tick() {
     return;
   }
 
-  const note = midiToNote(freqToMidi(freq));
   updateDetected(freq, note);
 
   // É a nota certa?
@@ -1770,6 +2276,26 @@ function onMiss(reason, cents) {
   sfxMiss();
   showX();
 
+  // Registra a nota errada no mapa de calor
+  if (state.current) {
+    let key = null, octaveCount = false;
+    if (state.current.type === 'note') {
+      const n = midiToNote(state.current.midi);
+      octaveCount = state.current.requireOctave;
+      key = octaveCount ? `${n.name} ${n.octave}` : n.name;
+    } else if (state.current.type === 'interval') {
+      const tn = midiToNote(state.current.target);
+      key = `${tn.name} ${tn.octave}`;
+    } else if (state.current.type === 'scale') {
+      const sn = midiToNote(state.current.escala.notas[state.subStep]);
+      key = `${sn.name} ${sn.octave}`;
+    } else if (state.current.type === 'ear') {
+      const en = midiToNote(state.current.midi);
+      key = `${en.name} ${en.octave}`;
+    }
+    if (key) state.missedNotes[key] = (state.missedNotes[key] || 0) + 1;
+  }
+
   // Feedback de direção quando errou por desafinação
   let extraDelay = 0;
   if (reason === 'detuned' && typeof cents === 'number') {
@@ -1864,6 +2390,23 @@ function phaseEnd(reason) {
     text.textContent = `Perdeu todas as vidas. Você completou ${state.itemIndex}/${state.phase.total}.`;
   }
 
+  // Mapa de calor: notas erradas
+  const missedSection = document.getElementById('missed-notes-section');
+  const missed = Object.entries(state.missedNotes).sort((a,b) => b[1] - a[1]);
+  if (missed.length > 0) {
+    let html = '<div class="missed-title">📌 NOTAS PRA ESTUDAR</div><div class="missed-list">';
+    missed.slice(0, 6).forEach(([note, count]) => {
+      const cls = count >= 3 ? 'high' : count >= 2 ? 'med' : 'low';
+      const noteDisplay = note.replace('#','♯');
+      html += `<div class="missed-item ${cls}"><span class="mn-note">${noteDisplay}</span><span class="mn-count">${count}×</span></div>`;
+    });
+    html += '</div>';
+    missedSection.innerHTML = html;
+    missedSection.style.display = 'block';
+  } else {
+    missedSection.style.display = 'none';
+  }
+
   // achievements desbloqueados
   const achBox = document.getElementById('new-achievements');
   achBox.innerHTML = '';
@@ -1903,6 +2446,7 @@ function startPhase(id) {
   state.hitTimestamps = [];
   state.staffOpenedThisPhase = false;
   state.newAchievements = [];
+  state.missedNotes = {};
   state.startTime = performance.now();
   resetSmoothing();
   showScreen('game');
@@ -2034,6 +2578,65 @@ document.getElementById('btn-show-achievements').addEventListener('click', () =>
 });
 document.getElementById('btn-close-ach').addEventListener('click', () => {
   document.getElementById('modal-ach').classList.remove('active');
+});
+
+// ============================================================
+// MODO ANÁLISE — handlers
+// ============================================================
+document.getElementById('btn-free-mode').addEventListener('click', async () => {
+  const status = document.getElementById('mic-status');
+  if (!audioCtx) {
+    status.textContent = 'PEDINDO MICROFONE...';
+    status.className = 'mic-status';
+    const ok = await startMic();
+    if (!ok) {
+      status.textContent = 'MICROFONE NEGADO. LIBERE NAS PERMISSÕES.';
+      status.className = 'mic-status bad';
+      return;
+    }
+    status.textContent = 'MICROFONE OK';
+    status.className = 'mic-status ok';
+  }
+  showScreen('analyze');
+  // reset estado visual
+  document.getElementById('analyze-status').textContent = 'PRONTO PARA GRAVAR';
+  document.getElementById('analyze-count').textContent = '0';
+  document.getElementById('analyze-current').textContent = '—';
+  document.getElementById('analyze-cents-live').textContent = '';
+  document.getElementById('analyze-live').style.display = 'block';
+  document.getElementById('analyze-results').style.display = 'none';
+  document.getElementById('btn-analyze-toggle').textContent = '🎙 INICIAR GRAVAÇÃO';
+  document.getElementById('btn-analyze-clear').style.display = 'none';
+  if (!rafId) tick();
+});
+
+document.getElementById('btn-analyze-toggle').addEventListener('click', () => {
+  if (analyzeState.active) {
+    stopAnalyzeSession();
+  } else {
+    startAnalyzeSession();
+  }
+});
+
+document.getElementById('btn-analyze-clear').addEventListener('click', () => {
+  analyzeState.notes = [];
+  analyzeState.currentDetect = null;
+  document.getElementById('analyze-status').textContent = 'PRONTO PARA GRAVAR';
+  document.getElementById('analyze-count').textContent = '0';
+  document.getElementById('analyze-current').textContent = '—';
+  document.getElementById('analyze-cents-live').textContent = '';
+  document.getElementById('analyze-live').style.display = 'block';
+  document.getElementById('analyze-results').style.display = 'none';
+  document.getElementById('btn-analyze-toggle').textContent = '🎙 INICIAR GRAVAÇÃO';
+  document.getElementById('btn-analyze-clear').style.display = 'none';
+});
+
+document.getElementById('btn-analyze-home').addEventListener('click', () => {
+  analyzeState.active = false;
+  if (rafId) cancelAnimationFrame(rafId);
+  rafId = null;
+  renderPhasesGrid();
+  showScreen('home');
 });
 
 renderPhasesGrid();
