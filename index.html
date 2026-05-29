@@ -1412,6 +1412,14 @@ const CELLO_MIDI_MAX = 76; // Mi5
 const NATURAIS = [0, 2, 4, 5, 7, 9, 11];
 const TODAS_12 = [0,1,2,3,4,5,6,7,8,9,10,11];
 
+// Notas naturais tocáveis em 1ª posição em cada corda do cello — 4 por corda
+const NATURAIS_POR_CORDA = {
+  'Dó':  [{midi:36,pc:0},{midi:38,pc:2},{midi:40,pc:4},{midi:41,pc:5}],   // Dó2 Ré2 Mi2 Fá2
+  'Sol': [{midi:43,pc:7},{midi:45,pc:9},{midi:47,pc:11},{midi:48,pc:0}],  // Sol2 Lá2 Si2 Dó3
+  'Ré':  [{midi:50,pc:2},{midi:52,pc:4},{midi:53,pc:5},{midi:55,pc:7}],   // Ré3 Mi3 Fá3 Sol3
+  'Lá':  [{midi:57,pc:9},{midi:59,pc:11},{midi:60,pc:0},{midi:62,pc:2}],  // Lá3 Si3 Dó4 Ré4
+};
+
 function midiToFreq(midi) { return A4_FREQ * Math.pow(2, (midi - 69) / 12); }
 function freqToMidi(hz) { return 69 + 12 * Math.log2(hz / A4_FREQ); }
 function midiToNote(midi) {
@@ -1492,7 +1500,7 @@ const PHASES = {
   2: { name: 'Corda SOL', desc: 'Primeira posição na corda Sol (G2). Sol2 → Dó#3.', type: 'string', cordaName: 'Sol', cordaMidi: 43, notes: [43, 44, 45, 46, 47, 48, 49], total: 14 },
   3: { name: 'Corda RÉ', desc: 'Primeira posição na corda Ré (D3). Ré3 → Sol#3.', type: 'string', cordaName: 'Ré', cordaMidi: 50, notes: [50, 51, 52, 53, 54, 55, 56], total: 14 },
   4: { name: 'Corda LÁ', desc: 'Primeira posição na corda Lá (A3). Lá3 → Ré#4.', type: 'string', cordaName: 'Lá', cordaMidi: 57, notes: [57, 58, 59, 60, 61, 62, 63], total: 14 },
-  5: { name: 'Notas Naturais (4 cordas)', desc: 'Dó Ré Mi Fá Sol Lá Si misturando todas as cordas', type: 'note', total: 30, pitchClasses: NATURAIS, requireOctave: false },
+  5: { name: 'Notas Naturais (4 cordas)', desc: 'Dó Ré Mi Fá Sol Lá Si — distribuídas igualmente entre as 4 cordas', type: 'note', total: 32, pitchClasses: NATURAIS, requireOctave: false, evenStrings: true },
   6: { name: 'Sustenidos & Bemóis', desc: '12 cromáticas — qualquer oitava', type: 'note', total: 35, pitchClasses: TODAS_12, requireOctave: false },
   7: { name: 'Com Oitavas', desc: 'A oitava conta. Sol 2 ≠ Sol 3', type: 'note', total: 35, pitchClasses: TODAS_12, requireOctave: true },
   8: { name: 'Intervalos', desc: 'Ouça a referência, toque o intervalo pedido', type: 'interval', total: 20 },
@@ -2079,6 +2087,36 @@ function generateItems(phase) {
   const items = [];
   switch (phase.type) {
     case 'note': {
+      // Caso especial: distribuição balanceada entre as 4 cordas (Fase 5)
+      if (phase.evenStrings) {
+        const cordOrder = ['Dó','Sol','Ré','Lá'];
+        const perString = Math.floor(phase.total / 4);
+        const extra = phase.total % 4;
+        // Cria sequência com igual contagem por corda
+        const seq = [];
+        cordOrder.forEach((corda, idx) => {
+          const count = perString + (idx < extra ? 1 : 0);
+          for (let j = 0; j < count; j++) seq.push(corda);
+        });
+        // Fisher-Yates shuffle
+        for (let i = seq.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [seq[i], seq[j]] = [seq[j], seq[i]];
+        }
+        // Gera items
+        for (let i = 0; i < seq.length; i++) {
+          const corda = seq[i];
+          const opts = NATURAIS_POR_CORDA[corda];
+          let pick, attempts = 0;
+          do {
+            pick = opts[Math.floor(Math.random() * opts.length)];
+            attempts++;
+          } while (attempts < 5 && items.length && items[items.length-1].midi === pick.midi);
+          items.push({ type:'note', midi: pick.midi, pc: pick.pc, requireOctave: false });
+        }
+        return items;
+      }
+      // Caso padrão
       for (let i = 0; i < phase.total; i++) {
         const pc = phase.pitchClasses[Math.floor(Math.random()*phase.pitchClasses.length)];
         const cands = [];
