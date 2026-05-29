@@ -781,7 +781,11 @@
   }
   .subtitle { font-size: 22px; letter-spacing: 3px; margin-top: 8px; }
 
-  .phases { gap: 18px; max-width: 1100px; }
+  .phases {
+    gap: 14px;
+    max-width: 1200px;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  }
   .phase-card { padding: 22px; border-width: 4px; }
   .phase-num { font-size: 15px; letter-spacing: 3px; }
   .phase-title { font-size: 22px; margin: 12px 0 14px; line-height: 1.4; }
@@ -1418,6 +1422,21 @@ function midiToNote(midi) {
 }
 function midiToName(midi) { const n = midiToNote(midi); return `${n.name} ${n.octave}`; }
 
+// Sugere o dedo na primeira posição pra uma nota tocada numa corda específica
+function getFingerPosition(midi, cordaMidi) {
+  const semis = midi - cordaMidi;
+  const map = {
+    0: 'corda solta',
+    1: '1º dedo (semitom)',
+    2: '1º dedo',
+    3: '2º dedo',
+    4: '3º dedo',
+    5: '4º dedo',
+    6: '4º dedo estendido',
+  };
+  return map[semis] || `${semis} semitons acima`;
+}
+
 // Sugere corda e posição da mão esquerda do cello pra uma nota MIDI
 // Cordas: Dó2=36, Sol2=43, Ré3=50, Lá3=57
 function getStringPosition(midi) {
@@ -1469,12 +1488,16 @@ const ESCALAS = [
 ];
 
 const PHASES = {
-  1: { name: 'Notas Naturais', desc: 'Dó Ré Mi Fá Sol Lá Si — qualquer oitava do cello', type: 'note', total: 30, pitchClasses: NATURAIS, requireOctave: false },
-  2: { name: 'Sustenidos & Bemóis', desc: '12 cromáticas — qualquer oitava', type: 'note', total: 35, pitchClasses: TODAS_12, requireOctave: false },
-  3: { name: 'Com Oitavas', desc: 'A oitava conta. Sol 2 ≠ Sol 3', type: 'note', total: 35, pitchClasses: TODAS_12, requireOctave: true },
-  4: { name: 'Intervalos', desc: 'Ouça a referência, toque o intervalo pedido', type: 'interval', total: 20 },
-  5: { name: 'Escalas', desc: '7 escalas. Pode abrir a partitura como apoio', type: 'scale', total: 7 },
-  6: { name: 'Ouvido (Maestro)', desc: 'O app toca, você reproduz. Sem dica visual.', type: 'ear', total: 20 },
+  1: { name: 'Corda DÓ', desc: 'Primeira posição na corda Dó (C2). Dó2 → Fá#2.', type: 'string', cordaName: 'Dó', cordaMidi: 36, notes: [36, 37, 38, 39, 40, 41, 42], total: 14 },
+  2: { name: 'Corda SOL', desc: 'Primeira posição na corda Sol (G2). Sol2 → Dó#3.', type: 'string', cordaName: 'Sol', cordaMidi: 43, notes: [43, 44, 45, 46, 47, 48, 49], total: 14 },
+  3: { name: 'Corda RÉ', desc: 'Primeira posição na corda Ré (D3). Ré3 → Sol#3.', type: 'string', cordaName: 'Ré', cordaMidi: 50, notes: [50, 51, 52, 53, 54, 55, 56], total: 14 },
+  4: { name: 'Corda LÁ', desc: 'Primeira posição na corda Lá (A3). Lá3 → Ré#4.', type: 'string', cordaName: 'Lá', cordaMidi: 57, notes: [57, 58, 59, 60, 61, 62, 63], total: 14 },
+  5: { name: 'Notas Naturais (4 cordas)', desc: 'Dó Ré Mi Fá Sol Lá Si misturando todas as cordas', type: 'note', total: 30, pitchClasses: NATURAIS, requireOctave: false },
+  6: { name: 'Sustenidos & Bemóis', desc: '12 cromáticas — qualquer oitava', type: 'note', total: 35, pitchClasses: TODAS_12, requireOctave: false },
+  7: { name: 'Com Oitavas', desc: 'A oitava conta. Sol 2 ≠ Sol 3', type: 'note', total: 35, pitchClasses: TODAS_12, requireOctave: true },
+  8: { name: 'Intervalos', desc: 'Ouça a referência, toque o intervalo pedido', type: 'interval', total: 20 },
+  9: { name: 'Escalas', desc: '7 escalas. Pode abrir a partitura como apoio', type: 'scale', total: 7 },
+  10:{ name: 'Ouvido (Maestro)', desc: 'O app toca, você reproduz. Sem dica visual.', type: 'ear', total: 20 },
 };
 
 // ============================================================
@@ -1483,8 +1506,8 @@ const PHASES = {
 const SAVE_KEY = 'decifra-notas-v2';
 function defaultSave() {
   return {
-    bestScore: {1:0,2:0,3:0,4:0,5:0,6:0},
-    bestTime: {1:null,2:null,3:null,4:null,5:null,6:null},
+    bestScore: {1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0,10:0},
+    bestTime: {1:null,2:null,3:null,4:null,5:null,6:null,7:null,8:null,9:null,10:null},
     completed: {},
     achievements: {},
   };
@@ -2071,6 +2094,14 @@ function generateItems(phase) {
       }
       return items;
     }
+    case 'string': {
+      for (let i = 0; i < phase.total; i++) {
+        const midi = phase.notes[Math.floor(Math.random() * phase.notes.length)];
+        if (items.length && items[items.length-1].midi === midi) { i--; continue; }
+        items.push({ type: 'string', midi, corda: phase.cordaName, cordaMidi: phase.cordaMidi });
+      }
+      return items;
+    }
     case 'interval': {
       for (let i = 0; i < phase.total; i++) {
         const semitons = INTERVALOS_KEYS[Math.floor(Math.random()*INTERVALOS_KEYS.length)];
@@ -2141,6 +2172,17 @@ function renderTarget() {
     // sugestão de corda e posição
     const sp = getStringPosition(it.midi);
     if (sp && _sh) _sh.textContent = `🎻 corda ${sp.corda} · ${sp.posicao}`;
+  }
+  else if (it.type === 'string') {
+    showDisplay('note');
+    promptLabel.textContent = `🎻 CORDA ${it.corda.toUpperCase()}`;
+    const n = midiToNote(it.midi);
+    document.getElementById('note-display').textContent = n.name.toUpperCase().replace('#','♯');
+    document.getElementById('note-octave').textContent = `OITAVA ${n.octave}`;
+    const enh = ENARMONICOS[n.name];
+    document.getElementById('note-enharmonic').textContent = enh ? `também: ${enh}` : '';
+    const finger = getFingerPosition(it.midi, it.cordaMidi);
+    if (_sh) _sh.textContent = `👆 ${finger}`;
   }
   else if (it.type === 'interval') {
     showDisplay('interval');
@@ -2305,6 +2347,7 @@ function renderStaff(escala, highlightIdx) {
 function getCurrentTargetMidi() {
   const it = state.current;
   if (it.type === 'note') return it.requireOctave ? it.midi : null; // null = pitch class only
+  if (it.type === 'string') return it.midi; // sempre exato (corda + posição)
   if (it.type === 'interval') return it.target;
   if (it.type === 'scale') return it.escala.notas[state.subStep];
   if (it.type === 'ear') return it.midi;
@@ -2449,6 +2492,9 @@ function onMiss(reason, cents) {
       const n = midiToNote(state.current.midi);
       octaveCount = state.current.requireOctave;
       key = octaveCount ? `${n.name} ${n.octave}` : n.name;
+    } else if (state.current.type === 'string') {
+      const n = midiToNote(state.current.midi);
+      key = `${n.name} ${n.octave}`;
     } else if (state.current.type === 'interval') {
       const tn = midiToNote(state.current.target);
       key = `${tn.name} ${tn.octave}`;
@@ -2519,17 +2565,17 @@ function phaseEnd(reason) {
     if (state.livesLost === 0) {
       const a = unlock('semcair'); if (a) state.newAchievements.push(a);
     }
-    if (state.phaseId === 5 && !state.staffOpenedThisPhase) {
+    if (state.phaseId === 9 && !state.staffOpenedThisPhase) {
       const a = unlock('leitor'); if (a) state.newAchievements.push(a);
     }
-    if (state.phaseId === 6) {
+    if (state.phaseId === 10) {
       const a = unlock('ouvido'); if (a) state.newAchievements.push(a);
     }
     saveData.completed[state.phaseId] = true;
     if (state.score > (saveData.bestScore[state.phaseId]||0)) saveData.bestScore[state.phaseId] = state.score;
     if (saveData.bestTime[state.phaseId] === null || state.elapsedSec < saveData.bestTime[state.phaseId]) saveData.bestTime[state.phaseId] = state.elapsedSec;
-    // maestro?
-    if ([1,2,3,4,5,6].every(p => saveData.completed[p])) {
+    // maestro = todas as 10
+    if ([1,2,3,4,5,6,7,8,9,10].every(p => saveData.completed[p])) {
       const a = unlock('maestro'); if (a) state.newAchievements.push(a);
     }
     persistSave();
@@ -2549,6 +2595,12 @@ function phaseEnd(reason) {
     emoji.textContent = '🎻';
     title.textContent = 'FASE COMPLETA!';
     text.textContent = `Acabou as ${state.phase.total} ${state.phase.type==='scale'?'escalas':state.phase.type==='interval'?'intervalos':'notas'} com ${state.lives} ♥ restantes.`;
+    // Maestro final na fase 10
+    if (state.phaseId === 10 && [1,2,3,4,5,6,7,8,9,10].every(p => saveData.completed[p])) {
+      emoji.textContent = '🏆';
+      title.textContent = 'MAESTRO!';
+      text.textContent = `Você completou as 10 fases! ${state.score} pts nesta. Vai sair afinando até cordas de violino.`;
+    }
     sfxLevel();
   } else {
     emoji.textContent = '💀';
@@ -2631,7 +2683,7 @@ function showScreen(name) {
 function renderPhasesGrid() {
   const grid = document.getElementById('phases-grid');
   grid.innerHTML = '';
-  [1,2,3,4,5,6].forEach(id => {
+  [1,2,3,4,5,6,7,8,9,10].forEach(id => {
     const p = PHASES[id];
     const card = document.createElement('div');
     card.className = 'phase-card';
@@ -2728,7 +2780,7 @@ document.getElementById('btn-home-modal').addEventListener('click', () => {
 
 document.getElementById('btn-next-phase').addEventListener('click', () => {
   document.getElementById('modal-win').classList.remove('active');
-  const next = state.phaseId < 6 ? state.phaseId + 1 : state.phaseId;
+  const next = state.phaseId < 10 ? state.phaseId + 1 : state.phaseId;
   startPhase(next);
 });
 
