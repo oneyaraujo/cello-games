@@ -1035,6 +1035,50 @@
     margin-top: 14px;
   }
 
+  .analyze-detect-bar {
+    background: var(--bg-2);
+    border: 3px solid var(--border-dark);
+    padding: 14px 16px;
+    margin: 18px auto;
+    text-align: center;
+    max-width: 600px;
+  }
+  .adb-label {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+  }
+  .adb-note {
+    font-size: 32px;
+    color: var(--muted);
+    letter-spacing: 4px;
+    min-height: 42px;
+    line-height: 1.1;
+    text-shadow:
+      -1px -1px 0 var(--border-dark),
+      1px -1px 0 var(--border-dark),
+      -1px 1px 0 var(--border-dark),
+      1px 1px 0 var(--border-dark);
+    transition: color 0.1s linear;
+  }
+  .adb-note.confirmed {
+    color: var(--good);
+  }
+  .adb-progress {
+    height: 14px;
+    background: var(--bg-1);
+    border: 2px solid var(--border-dark);
+    margin-top: 12px;
+    overflow: hidden;
+  }
+  .adb-bar {
+    height: 100%;
+    width: 0%;
+    background: var(--gold);
+    transition: width 0.05s linear;
+  }
+
   .analyze-summary { margin-bottom: 22px; }
   .analyze-summary-line {
     font-size: 18px;
@@ -1273,10 +1317,17 @@
 
     <div class="analyze-card" id="analyze-card">
       <div id="analyze-live">
-        <div class="prompt-label">DETECTANDO</div>
+        <div class="prompt-label">ÚLTIMA CAPTADA</div>
         <div class="analyze-current" id="analyze-current">—</div>
         <div class="analyze-cents-live" id="analyze-cents-live"></div>
-        <div class="analyze-hint">Toque uma nota por vez. O app registra cada nota que você segurar por ~400ms.</div>
+
+        <div class="analyze-detect-bar">
+          <div class="adb-label">DETECTANDO AGORA</div>
+          <div class="adb-note" id="ald-note">—</div>
+          <div class="adb-progress"><div class="adb-bar" id="ald-bar"></div></div>
+        </div>
+
+        <div class="analyze-hint">Toque normalmente. O app reconhece o ataque de cada nota e confirma a partir de 180ms de hold.</div>
       </div>
 
       <div id="analyze-results" style="display:none;">
@@ -1696,24 +1747,75 @@ const state = {
 };
 
 // ============================================================
-// MODO ANÁLISE — captura trecho e devolve análise por nota
+// MODO ANÁLISE — captura trecho com onset detection + voting
 // ============================================================
-const analyzeState = {
-  active: false,
-  notes: [],            // [{midi, name, octave, cents}]
-  currentDetect: null,  // {midi, centsBuf, startTime, confirmed}
-  lastConfirmedMidi: null,
-};
-
-const ANALYZE_HOLD_MS = 400;
+const ANALYZE_HOLD_MS = 180;          // tempo mín. de hold pra confirmar
+const ANALYZE_VOTE_WINDOW = 8;        // tamanho do buffer de votação
 const ANALYZE_CENTS_PERFECT = 10;
 const ANALYZE_CENTS_OK = 25;
+const ONSET_RATIO = 1.8;              // RMS atual deve ser N× maior que histórico
+const ONSET_MIN_RMS = 0.025;          // RMS mínimo absoluto pra contar como onset
+const SILENCE_RESET_MS = 180;         // tempo de silêncio pra liberar nova detecção
+const COOLDOWN_AFTER_CONFIRM_MS = 70; // anti-double-confirm
+
+const analyzeState = {
+  active: false,
+  notes: [],             // [{midi, name, octave, cents}]
+  detection: null,       // { holdStart, midiBuf, centsBuf, votedMidi, confirmed }
+  rmsHistory: [],
+  lastSoundTime: 0,
+  cooldownUntil: 0,
+};
+
+function pushRms(r) {
+  analyzeState.rmsHistory.push(r);
+  if (analyzeState.rmsHistory.length > 12) analyzeState.rmsHistory.shift();
+}
+
+function detectOnset(currentRms) {
+  if (currentRms < ONSET_MIN_RMS) return false;
+  if (analyzeState.rmsHistory.length < 4) return false;
+  // Compara RMS atual com média das amostras anteriores (excluindo as 2 últimas)
+  const old = analyzeState.rmsHistory.slice(0, -2);
+  if (old.length === 0) return false;
+  const avgOld = old.reduce((a,b) => a+b, 0) / old.length;
+  return currentRms > avgOld * ONSET_RATIO;
+}
+
+function modeMidi(buf) {
+  const counts = {};
+  let bestMidi = null, bestCount = 0;
+  for (const m of buf) {
+    counts[m] = (counts[m] || 0) + 1;
+    if (counts[m] > bestCount) { bestCount = counts[m]; bestMidi = m; }
+  }
+  return { midi: bestMidi, conf: bestCount / buf.length };
+}
+
+function updateLiveDetect(noteObj, progressMs, confirmed) {
+  const el = document.getElementById('ald-note');
+  const bar = document.getElementById('ald-bar');
+  if (!el || !bar) return;
+  if (!noteObj) {
+    el.textContent = '—';
+    el.classList.remove('confirmed');
+    bar.style.width = '0%';
+    return;
+  }
+  el.textContent = `${noteObj.name.toUpperCase().replace('#','♯')} ${noteObj.octave}`;
+  const pct = Math.min(100, (progressMs / ANALYZE_HOLD_MS) * 100);
+  bar.style.width = pct + '%';
+  if (confirmed) el.classList.add('confirmed');
+  else el.classList.remove('confirmed');
+}
 
 function startAnalyzeSession() {
   analyzeState.active = true;
   analyzeState.notes = [];
-  analyzeState.currentDetect = null;
-  analyzeState.lastConfirmedMidi = null;
+  analyzeState.detection = null;
+  analyzeState.rmsHistory = [];
+  analyzeState.lastSoundTime = 0;
+  analyzeState.cooldownUntil = 0;
   document.getElementById('analyze-status').textContent = '🔴 GRAVANDO...';
   document.getElementById('analyze-count').textContent = '0';
   document.getElementById('analyze-current').textContent = '—';
@@ -1732,50 +1834,97 @@ function stopAnalyzeSession() {
   renderAnalyzeResults();
 }
 
-function analyzeTick(freq, note) {
-  if (freq < 0) {
-    // silêncio — descarta detecção em andamento se não confirmou
-    if (analyzeState.currentDetect && !analyzeState.currentDetect.confirmed) {
-      analyzeState.currentDetect = null;
-    } else if (analyzeState.currentDetect && analyzeState.currentDetect.confirmed) {
-      analyzeState.currentDetect = null;
-      analyzeState.lastConfirmedMidi = null;
+function analyzeTick(freq, note, rms) {
+  pushRms(rms);
+  const now = performance.now();
+
+  // Silêncio prolongado → libera pra nova detecção
+  if (freq < 0 || rms < 0.012) {
+    if (now - analyzeState.lastSoundTime > SILENCE_RESET_MS) {
+      analyzeState.detection = null;
+      updateLiveDetect(null, 0, false);
     }
     return;
   }
 
-  const cd = analyzeState.currentDetect;
+  analyzeState.lastSoundTime = now;
 
-  if (!cd || cd.midi !== note.midi) {
-    // nova detecção (entrou numa nota diferente)
-    analyzeState.currentDetect = {
-      midi: note.midi,
-      centsBuf: [note.cents],
-      startTime: performance.now(),
-      confirmed: false,
-    };
+  // Onset detection: detectou novo ataque enquanto a detecção anterior já tinha confirmado
+  const onset = detectOnset(rms);
+  if (onset && analyzeState.detection && analyzeState.detection.confirmed) {
+    analyzeState.detection = null;
+  }
+
+  // Cooldown curto pra não duplicar confirm
+  if (now < analyzeState.cooldownUntil) {
+    updateLiveDetect(null, 0, false);
     return;
   }
 
-  // mesma nota — acumula
-  cd.centsBuf.push(note.cents);
+  let det = analyzeState.detection;
 
-  if (!cd.confirmed && performance.now() - cd.startTime >= ANALYZE_HOLD_MS) {
-    // confirmou — registra
-    cd.confirmed = true;
-    const avgCents = cd.centsBuf.reduce((a,b)=>a+b,0) / cd.centsBuf.length;
-    const n = midiToNote(cd.midi);
+  if (!det) {
+    // Começa nova detecção
+    det = analyzeState.detection = {
+      holdStart: now,
+      midiBuf: [note.midi],
+      centsBuf: [note.cents],
+      votedMidi: note.midi,
+      confirmed: false,
+    };
+    updateLiveDetect(note, 0, false);
+    return;
+  }
+
+  if (det.confirmed) {
+    // Já confirmou — aguarda silêncio/onset/mudança de nota
+    updateLiveDetect(midiToNote(det.votedMidi), ANALYZE_HOLD_MS, true);
+    return;
+  }
+
+  // Acumula leituras na janela de votação
+  det.midiBuf.push(note.midi);
+  det.centsBuf.push(note.cents);
+  if (det.midiBuf.length > ANALYZE_VOTE_WINDOW) {
+    det.midiBuf.shift();
+    det.centsBuf.shift();
+  }
+
+  // Voting: qual MIDI é majoritário?
+  const vote = modeMidi(det.midiBuf);
+
+  // Se MIDI votado mudou com confiança ≥50%, reinicia o hold
+  if (vote.midi !== det.votedMidi && vote.conf >= 0.5) {
+    det.votedMidi = vote.midi;
+    det.holdStart = now;
+    // mantém o buffer recente
+  }
+
+  const progress = now - det.holdStart;
+  const voteNote = midiToNote(det.votedMidi);
+  updateLiveDetect(voteNote, progress, false);
+
+  if (progress >= ANALYZE_HOLD_MS) {
+    // Confirmar nota
+    det.confirmed = true;
+    // Média de cents só das leituras do MIDI votado
+    const filtered = det.centsBuf.filter((c, i) => det.midiBuf[i] === det.votedMidi);
+    const avgCents = filtered.length > 0
+      ? filtered.reduce((a,b)=>a+b,0) / filtered.length
+      : det.centsBuf.reduce((a,b)=>a+b,0) / det.centsBuf.length;
+    const n = midiToNote(det.votedMidi);
     analyzeState.notes.push({
-      midi: cd.midi,
+      midi: det.votedMidi,
       name: n.name,
       octave: n.octave,
       cents: avgCents,
     });
-    analyzeState.lastConfirmedMidi = cd.midi;
     document.getElementById('analyze-current').textContent = `${n.name.toUpperCase().replace('#','♯')} ${n.octave}`;
     document.getElementById('analyze-cents-live').textContent = `${avgCents >= 0 ? '+' : ''}${avgCents.toFixed(1)}¢`;
     document.getElementById('analyze-count').textContent = analyzeState.notes.length;
+    updateLiveDetect(n, ANALYZE_HOLD_MS, true);
     sfxHit();
+    analyzeState.cooldownUntil = now + COOLDOWN_AFTER_CONFIRM_MS;
   }
 }
 
@@ -2160,12 +2309,18 @@ function tick() {
   rafId = requestAnimationFrame(tick);
   if (!analyser || !buffer) return;
   analyser.getFloatTimeDomainData(buffer);
+
+  // Calcula RMS pra onset detection
+  let rms = 0;
+  for (let i = 0; i < buffer.length; i++) rms += buffer[i] * buffer[i];
+  rms = Math.sqrt(rms / buffer.length);
+
   const freq = yin(buffer, audioCtx.sampleRate);
   const note = freq > 0 ? midiToNote(freqToMidi(freq)) : null;
 
   // Modo Análise tem prioridade
   if (analyzeState.active) {
-    analyzeTick(freq, note);
+    analyzeTick(freq, note, rms);
     return;
   }
 
@@ -2526,7 +2681,6 @@ document.getElementById('btn-skip').addEventListener('click', () => {
   resetSmoothing();
   state.matchStartTime = null;
   renderHud();
-  // escalas: pula a escala inteira
   if (state.current && state.current.type === 'scale') {
     state.subStep = state.current.escala.notas.length;
   }
@@ -2598,7 +2752,6 @@ document.getElementById('btn-free-mode').addEventListener('click', async () => {
     status.className = 'mic-status ok';
   }
   showScreen('analyze');
-  // reset estado visual
   document.getElementById('analyze-status').textContent = 'PRONTO PARA GRAVAR';
   document.getElementById('analyze-count').textContent = '0';
   document.getElementById('analyze-current').textContent = '—';
@@ -2620,7 +2773,8 @@ document.getElementById('btn-analyze-toggle').addEventListener('click', () => {
 
 document.getElementById('btn-analyze-clear').addEventListener('click', () => {
   analyzeState.notes = [];
-  analyzeState.currentDetect = null;
+  analyzeState.detection = null;
+  analyzeState.rmsHistory = [];
   document.getElementById('analyze-status').textContent = 'PRONTO PARA GRAVAR';
   document.getElementById('analyze-count').textContent = '0';
   document.getElementById('analyze-current').textContent = '—';
