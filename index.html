@@ -1749,14 +1749,15 @@ const state = {
 // ============================================================
 // MODO ANÁLISE — captura trecho com onset detection + voting
 // ============================================================
-const ANALYZE_HOLD_MS = 180;          // tempo mín. de hold pra confirmar
-const ANALYZE_VOTE_WINDOW = 8;        // tamanho do buffer de votação
+const ANALYZE_HOLD_MS = 120;          // tempo mín. de hold pra confirmar
+const ANALYZE_VOTE_WINDOW = 6;        // tamanho do buffer de votação
 const ANALYZE_CENTS_PERFECT = 10;
 const ANALYZE_CENTS_OK = 25;
-const ONSET_RATIO = 1.8;              // RMS atual deve ser N× maior que histórico
+const ONSET_RATIO = 1.4;              // RMS atual deve ser N× maior que histórico
 const ONSET_MIN_RMS = 0.025;          // RMS mínimo absoluto pra contar como onset
-const SILENCE_RESET_MS = 180;         // tempo de silêncio pra liberar nova detecção
-const COOLDOWN_AFTER_CONFIRM_MS = 70; // anti-double-confirm
+const SILENCE_RESET_MS = 140;         // tempo de silêncio pra liberar nova detecção
+const COOLDOWN_AFTER_CONFIRM_MS = 40; // anti-double-confirm
+const LEGATO_CHANGE_FRAMES = 3;       // frames seguidos com nota diferente = nova nota
 
 const analyzeState = {
   active: false,
@@ -1877,7 +1878,17 @@ function analyzeTick(freq, note, rms) {
   }
 
   if (det.confirmed) {
-    // Já confirmou — aguarda silêncio/onset/mudança de nota
+    // Já confirmou — aguarda silêncio/onset, OU detecta nova nota em legato
+    // Se 3 frames seguidos detectarem nota diferente, reset (resolve escalas conectadas)
+    if (note.midi !== det.votedMidi) {
+      det.newMidiCount = (det.newMidiCount || 0) + 1;
+      if (det.newMidiCount >= LEGATO_CHANGE_FRAMES) {
+        analyzeState.detection = null;
+        return; // próximo frame inicia nova detecção
+      }
+    } else {
+      det.newMidiCount = 0;
+    }
     updateLiveDetect(midiToNote(det.votedMidi), ANALYZE_HOLD_MS, true);
     return;
   }
