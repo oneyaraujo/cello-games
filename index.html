@@ -1477,9 +1477,12 @@ function renderTarget() {
     promptLabel.textContent = 'TOQUE ESTA NOTA';
     const n = midiToNote(it.midi);
     document.getElementById('note-display').textContent = n.name.toUpperCase().replace('#','♯');
-    document.getElementById('note-octave').textContent = it.requireOctave ? `OITAVA ${n.octave}` : '';
+    document.getElementById('note-octave').textContent = `OITAVA ${n.octave}`;
     const enh = ENARMONICOS[n.name];
-    document.getElementById('note-enharmonic').textContent = enh ? `também: ${enh}` : '';
+    let extra = '';
+    if (enh) extra = `também: ${enh}`;
+    if (!it.requireOctave) extra = (extra ? extra + ' · ' : '') + 'outras oitavas também valem';
+    document.getElementById('note-enharmonic').textContent = extra;
   }
   else if (it.type === 'interval') {
     showDisplay('interval');
